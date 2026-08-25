@@ -3,80 +3,92 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat4Now - Modern Messenger</title>
+  <title>Chat4Now - Messenger</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="bg-slate-900 text-slate-100 h-screen flex justify-center items-center p-2 sm:p-4">
+<body class="bg-[#1e1f22] text-[#f2f3f5] h-screen flex justify-center items-center overflow-hidden font-sans">
 
-  <!-- LOGIN SCREEN -->
-  <div id="login-screen" class="bg-slate-800 p-8 rounded-2xl shadow-2xl w-full max-w-md text-center border border-slate-700">
-    <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-lg">
-      <i class="fa-solid fa-comments text-white"></i>
+  <!-- LOGIN SCREEN (Telegram/Messenger Modern Splash) -->
+  <div id="login-screen" class="bg-[#2b2d31] p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center border border-[#35373c]">
+    <div class="w-20 h-20 bg-gradient-to-tr from-blue-600 to-sky-400 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl text-3xl">
+      <i class="fa-solid fa-paper-plane text-white"></i>
     </div>
-    <h1 class="text-2xl font-bold mb-2">Chat4Now</h1>
-    <p class="text-slate-400 text-sm mb-6">Mag-sign in gamit ang Google para makipag-chat sa mga kaibigan.</p>
-    <button id="btn-login" class="w-full bg-white text-slate-800 font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-100 transition shadow-md">
-      <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-5 h-5" alt="Google">
-      Continue with Google
+    <h1 class="text-2xl font-bold mb-2 tracking-wide">Chat4Now</h1>
+    <p class="text-[#949ba4] text-xs mb-8 leading-relaxed">Mabilis, moderno, at ligtas na pakikipag-chat sa mga kaibigan.</p>
+    <button id="btn-login" class="w-full bg-[#0088cc] hover:bg-[#0077b3] text-white font-medium py-3 px-4 rounded-xl flex items-center justify-center gap-3 transition shadow-lg text-sm">
+      <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-5 h-5 bg-white rounded-full p-0.5" alt="Google">
+      Mag-sign in gamit ang Google
     </button>
   </div>
 
-  <!-- MAIN CHAT INTERFACE -->
-  <div id="chat-app" class="hidden bg-slate-800 w-full max-w-5xl h-[90vh] rounded-2xl shadow-2xl overflow-hidden border border-slate-700 flex flex-col md:flex-row">
+  <!-- MAIN CHAT INTERFACE (Messenger / Telegram Style) -->
+  <div id="chat-app" class="hidden bg-[#313338] w-full max-w-6xl h-full md:h-[92vh] md:rounded-2xl shadow-2xl overflow-hidden border border-[#3f4147] flex">
     
-    <!-- SIDEBAR -->
-    <div class="w-full md:w-80 bg-slate-800/50 border-r border-slate-700 flex flex-col">
-      <div class="p-4 border-b border-slate-700 flex items-center justify-between">
+    <!-- LEFT SIDEBAR: CHATS LIST -->
+    <div class="w-full md:w-80 bg-[#2b2d31] border-r border-[#3f4147] flex flex-col">
+      <!-- Profile Header -->
+      <div class="p-3 px-4 border-b border-[#3f4147] flex items-center justify-between bg-[#2b2d31]">
         <div class="flex items-center gap-3">
           <div class="relative">
-            <img id="user-avatar" class="w-10 h-10 rounded-full object-cover" src="https://i.pravatar.cc/100" alt="Avatar">
-            <span class="w-3 h-3 bg-emerald-500 border-2 border-slate-800 rounded-full absolute bottom-0 right-0"></span>
+            <img id="user-avatar" class="w-9 h-9 rounded-full object-cover" src="" alt="Avatar">
+            <span class="w-3 h-3 bg-emerald-500 border-2 border-[#2b2d31] rounded-full absolute bottom-0 right-0"></span>
           </div>
-          <span id="user-name" class="font-semibold text-sm truncate">User Name</span>
+          <span id="user-name" class="font-semibold text-sm truncate max-w-[140px]">Pangalan</span>
         </div>
-        <button id="btn-logout" class="text-slate-400 hover:text-red-400 text-sm p-2"><i class="fa-solid fa-right-from-bracket"></i></button>
+        <button id="btn-logout" class="text-[#949ba4] hover:text-red-400 text-sm p-2 transition" title="Log out"><i class="fa-solid fa-right-from-bracket"></i></button>
       </div>
 
-      <div class="p-3 border-b border-slate-700">
+      <!-- Search Bar -->
+      <div class="p-3 border-b border-[#3f4147]">
         <div class="relative">
-          <input type="text" id="search-friend" placeholder="Mag-hanap ng user..." class="w-full bg-slate-900 text-sm rounded-xl pl-9 pr-4 py-2 border border-slate-700 focus:outline-none focus:border-blue-500 text-white">
-          <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-sm"></i>
+          <input type="text" id="search-friend" placeholder="Maghanap ng kaibigan..." class="w-full bg-[#1e1f22] text-xs rounded-xl pl-9 pr-4 py-2.5 border border-transparent focus:border-[#0088cc] focus:outline-none text-white transition placeholder-[#949ba4]">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-[#949ba4] text-xs"></i>
         </div>
       </div>
 
+      <!-- Friends / Active Chats List -->
       <div class="flex-1 overflow-y-auto p-2 space-y-1" id="friends-list">
-        <p class="text-slate-500 text-xs text-center mt-4">Wala pang nakikitang user...</p>
+        <!-- Dito papasok ang listahan ng users galing Firestore -->
       </div>
     </div>
 
-    <!-- MAIN CHAT AREA -->
-    <div class="flex-1 flex flex-col bg-slate-900/40">
-      <div class="p-4 border-b border-slate-700 flex items-center justify-between bg-slate-800/30">
+    <!-- RIGHT CHAT WINDOW AREA -->
+    <div class="hidden md:flex flex-1 flex-col bg-[#313338] relative" id="chat-window-container">
+      <!-- Active Chat Header -->
+      <div class="p-3.5 px-6 border-b border-[#3f4147] flex items-center justify-between bg-[#2b2d31]/80 backdrop-blur-md">
         <div class="flex items-center gap-3">
           <div class="relative">
-            <img id="active-chat-avatar" class="w-10 h-10 rounded-full" src="https://i.pravatar.cc/100" alt="">
-            <span id="active-chat-status-dot" class="w-3 h-3 bg-slate-500 border-2 border-slate-800 rounded-full absolute bottom-0 right-0"></span>
+            <img id="active-chat-avatar" class="w-10 h-10 rounded-full object-cover" src="https://i.pravatar.cc/100" alt="">
+            <span id="active-chat-status-dot" class="w-3 h-3 bg-slate-500 border-2 border-[#2b2d31] rounded-full absolute bottom-0 right-0"></span>
           </div>
           <div>
-            <h3 id="active-chat-name" class="font-semibold text-sm">Pumili ng kaibigan</h3>
-            <span id="active-chat-status-text" class="text-xs text-slate-400">Offline</span>
+            <h3 id="active-chat-name" class="font-semibold text-sm text-white">Pumili ng usapan</h3>
+            <span id="active-chat-status-text" class="text-[11px] text-[#949ba4]">Offline</span>
           </div>
         </div>
       </div>
 
-      <div class="flex-1 overflow-y-auto p-4 space-y-3" id="messages-box">
-        <p class="text-center text-slate-500 text-sm mt-10">Pumili ng chat para magsimula ng usapan.</p>
+      <!-- Messages History Box -->
+      <div class="flex-1 overflow-y-auto p-6 space-y-4 flex flex-col" id="messages-box">
+        <div class="m-auto text-center text-[#949ba4] text-xs">
+          <i class="fa-regular fa-comments text-3xl mb-2 opacity-40"></i>
+          <p>I-click ang isang kaibigan sa kaliwa para magsimula mag-chat.</p>
+        </div>
       </div>
 
-      <form id="chat-form" class="p-3 bg-slate-800 border-t border-slate-700 flex gap-2">
-        <input type="text" id="msg-input" placeholder="I-type ang iyong mensahe..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-blue-500 text-white" disabled>
-        <button type="submit" id="btn-send" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm transition disabled:opacity-50" disabled><i class="fa-solid fa-paper-plane"></i></button>
+      <!-- Message Input Bar (Telegram/Messenger style) -->
+      <form id="chat-form" class="p-3 px-6 bg-[#2b2d31] border-t border-[#3f4147] flex items-center gap-3">
+        <input type="text" id="msg-input" placeholder="Mag-type ng mensahe..." class="flex-1 bg-[#1e1f22] text-[#f2f3f5] placeholder-[#949ba4] text-sm rounded-xl px-4 py-3 border border-transparent focus:border-[#0088cc] focus:outline-none transition" disabled>
+        <button type="submit" id="btn-send" class="w-10 h-10 bg-[#0088cc] hover:bg-[#0077b3] text-white rounded-xl flex items-center justify-center transition disabled:opacity-40 disabled:cursor-not-allowed shadow-md" disabled>
+          <i class="fa-solid fa-paper-plane text-xs"></i>
+        </button>
       </form>
     </div>
 
   </div>
 
+  <!-- FIREBASE SCRIPTS -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -145,17 +157,41 @@
             const isOnline = userData.isOnline;
             
             const userCard = document.createElement('div');
-            userCard.className = "flex items-center gap-3 p-3 rounded-xl bg-slate-700/30 hover:bg-slate-700 cursor-pointer transition";
+            userCard.className = "flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#35373c] cursor-pointer transition group";
             userCard.innerHTML = `
               <div class="relative">
-                <img class="w-10 h-10 rounded-full object-cover" src="${userData.photoURL}" alt="">
-                <span class="w-3 h-3 ${isOnline ? 'bg-emerald-500' : 'bg-slate-500'} border-2 border-slate-800 rounded-full absolute bottom-0 right-0"></span>
+                <img class="w-11 h-11 rounded-full object-cover" src="${userData.photoURL}" alt="">
+                <span class="w-3.5 h-3.5 ${isOnline ? 'bg-emerald-500' : 'bg-[#80848e]'} border-2 border-[#2b2d31] rounded-full absolute bottom-0 right-0"></span>
               </div>
               <div class="flex-1 min-w-0">
-                <h4 class="text-sm font-semibold truncate">${userData.name}</h4>
-                <p class="text-xs ${isOnline ? 'text-emerald-400' : 'text-slate-400'}">${isOnline ? 'Online' : 'Offline'}</p>
+                <div class="flex justify-between items-center mb-0.5">
+                  <h4 class="text-xs font-semibold text-white truncate">${userData.name}</h4>
+                </div>
+                <p class="text-[11px] ${isOnline ? 'text-emerald-400 font-medium' : 'text-[#949ba4]'}">${isOnline ? 'Online' : 'Offline'}</p>
               </div>
             `;
+            
+            // Pag-click sa user, magse-set active chat
+            userCard.addEventListener('click', () => {
+              document.getElementById('active-chat-name').innerText = userData.name;
+              document.getElementById('active-chat-avatar').src = userData.photoURL;
+              document.getElementById('active-chat-status-text').innerText = isOnline ? 'Online' : 'Offline';
+              document.getElementById('active-chat-status-dot').className = `w-3 h-3 ${isOnline ? 'bg-emerald-500' : 'bg-slate-500'} border-2 border-[#2b2d31] rounded-full absolute bottom-0 right-0`;
+              
+              // I-enable ang message input
+              document.getElementById('msg-input').disabled = false;
+              document.getElementById('btn-send').disabled = false;
+              
+              // Halimbawa ng greeting sa messages box
+              document.getElementById('messages-box').innerHTML = `
+                <div class="flex justify-start">
+                  <div class="bg-[#383a40] text-[#f2f3f5] p-3 px-4 rounded-2xl rounded-tl-sm max-w-xs text-xs leading-relaxed shadow-sm">
+                    Kamusta! Nagsimula na kayong mag-usap ni ${userData.name}.
+                  </div>
+                </div>
+              `;
+            });
+
             list.appendChild(userCard);
           }
         });
