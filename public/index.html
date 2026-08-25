@@ -53,7 +53,7 @@
       } 
     }
 
-    /* Modern Toast Notification replacing default alert */
+    /* Modern Toast Notification */
     #toast-notification {
       position: fixed;
       top: 20px;
@@ -75,7 +75,55 @@
     }
     #toast-notification.show { transform: translateX(-50%) translateY(0); }
 
-    /* Login Screen - Modern & Sleek */
+    /* Action Modal Sheet (Message / Add / Unfriend) */
+    #action-modal {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100dvh;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 10000;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .action-sheet {
+      background: var(--bg-secondary);
+      width: 100%;
+      max-width: 500px;
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      padding: 24px;
+      border-top: 1px solid var(--border-color);
+      box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .action-sheet-title { font-size: 16px; font-weight: 700; text-align: center; margin-bottom: 8px; color: #fff; }
+    .sheet-btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      background: rgba(15, 23, 42, 0.6);
+      color: #fff;
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.2s;
+    }
+    .sheet-btn:hover { background: var(--bg-hover); }
+    .sheet-btn.danger { color: #f87171; border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.1); }
+    .sheet-btn.primary { background: var(--accent-gradient); color: #0f172a; border: none; font-weight: 700; }
+    .sheet-btn.cancel { background: transparent; border: none; color: var(--text-muted); }
+
+    /* Login Screen */
     .login-overlay {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -89,7 +137,6 @@
     .login-card { 
       background: rgba(30, 41, 59, 0.7); 
       backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
       padding: 40px 30px; 
       border-radius: 24px; 
       width: 90%; 
@@ -113,8 +160,7 @@
     .login-card p { color: var(--text-muted); font-size: 14px; margin-bottom: 24px; }
     .login-card input { width: 100%; padding: 14px 18px; border-radius: 12px; border: 1px solid var(--border-color); background: rgba(15, 23, 42, 0.6); color: #fff; margin-bottom: 14px; font-size: 15px; outline: none; transition: all 0.3s; }
     .login-card input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15); }
-    .btn-login { width: 100%; padding: 14px; border-radius: 12px; border: none; background: var(--accent-gradient); color: #0f172a; font-weight: 700; font-size: 16px; cursor: pointer; margin-bottom: 12px; transition: transform 0.2s, opacity 0.2s; box-shadow: 0 4px 12px rgba(16,185,129,0.2); }
-    .btn-login:active { transform: scale(0.98); }
+    .btn-login { width: 100%; padding: 14px; border-radius: 12px; border: none; background: var(--accent-gradient); color: #0f172a; font-weight: 700; font-size: 16px; cursor: pointer; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(16,185,129,0.2); }
     .btn-guest { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: transparent; color: var(--text-main); font-weight: 600; font-size: 14px; cursor: pointer; transition: background 0.2s; }
     .btn-guest:hover { background: rgba(255,255,255,0.05); }
 
@@ -144,7 +190,7 @@
     .avatar-icon { width: 44px; height: 44px; border-radius: 50%; background: var(--accent-gradient); color: #0f172a; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; flex-shrink: 0; box-shadow: 0 4px 10px rgba(16,185,129,0.2); }
     .ping-badge { font-size: 11px; background: rgba(15, 23, 42, 0.6); padding: 4px 10px; border-radius: 20px; color: var(--accent); border: 1px solid var(--border-color); font-weight: 500; }
 
-    /* Modern Telegram/WhatsApp Tab Bar */
+    /* Tab bar */
     .tab-bar { display: flex; background: rgba(15, 23, 42, 0.4); padding: 6px; margin: 12px 12px 4px 12px; border-radius: 12px; border: 1px solid var(--border-color); flex-shrink: 0; }
     .tab-btn { flex: 1; padding: 10px 0; background: none; border: none; color: var(--text-muted); font-weight: 600; font-size: 12px; cursor: pointer; border-radius: 8px; transition: all 0.2s ease; text-align: center; }
     .tab-btn.active { color: #fff; background: rgba(255, 255, 255, 0.08); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
@@ -165,8 +211,6 @@
     .btn-action:active { transform: scale(0.95); }
     .btn-add { background: var(--accent); color: #0f172a; }
     .btn-accept { background: #10b981; color: #fff; }
-    .btn-unfriend { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
-    .btn-unfriend:hover { background: var(--danger); color: #fff; }
 
     /* Floating Action Button (+) */
     #fab-find {
@@ -189,8 +233,7 @@
       z-index: 20;
       transition: transform 0.2s, box-shadow 0.2s;
     }
-    #fab-find:hover { transform: scale(1.05); box-shadow: 0 12px 25px rgba(16, 185, 129, 0.6); }
-    #fab-find:active { transform: scale(0.95); }
+    #fab-find:hover { transform: scale(1.05); }
 
     /* Chat Area */
     .chat-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-primary); height: 100%; width: 100%; position: relative; overflow: hidden; }
@@ -211,95 +254,9 @@
 
     .controls-bar { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-muted); }
     .input-row { display: flex; align-items: center; gap: 10px; width: 100%; }
-    .input-row input[type="text"] { flex: 1; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border-color); background: rgba(15, 23, 42, 0.6); color: #fff; font-size: 14px; outline: none; transition: border-color 0.3s; }
-    .input-row input[type="text"]:focus { border-color: var(--accent); }
-    .btn-send { padding: 12px 20px; border-radius: 12px; border: none; background: var(--accent-gradient); color: #0f172a; font-weight: 700; cursor: pointer; flex-shrink: 0; transition: opacity 0.2s; box-shadow: 0 4px 10px rgba(16,185,129,0.2); }
-    .icon-btn { background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; flex-shrink: 0; transition: color 0.2s; }
-    .icon-btn:hover { color: var(--accent); }
-
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.15); }
-      100% { transform: scale(1); }
-    }
-
-    /* Floating Chat Head */
-    #chat-head {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      width: 58px;
-      height: 58px;
-      background: var(--accent-gradient);
-      border-radius: 50%;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      color: #0f172a;
-      font-weight: bold;
-      font-size: 22px;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.5);
-      cursor: pointer;
-      z-index: 999;
-      user-select: none;
-      touch-action: none;
-    }
-    #chat-head-badge {
-      position: absolute;
-      top: -2px;
-      right: -2px;
-      background: var(--danger);
-      color: white;
-      border-radius: 50%;
-      padding: 2px 7px;
-      font-size: 11px;
-      font-weight: 700;
-      display: none;
-    }
-
-    /* Incoming Call Modal Alert */
-    #incoming-call-modal {
-      position: fixed;
-      top: 0; left: 0; width: 100vw; height: 100dvh;
-      background: rgba(15, 23, 42, 0.95);
-      backdrop-filter: blur(15px);
-      z-index: 10000;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 24px;
-      text-align: center;
-    }
-    .caller-avatar {
-      width: 100px; height: 100px;
-      border-radius: 50%;
-      background: var(--accent-gradient);
-      color: #0f172a;
-      font-size: 40px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 0 30px rgba(16, 185, 129, 0.4);
-      animation: pulse 1.5s infinite;
-    }
-    .call-actions { display: flex; gap: 40px; margin-top: 20px; }
-    .btn-call-action {
-      width: 70px; height: 70px;
-      border-radius: 50%;
-      border: none;
-      font-size: 26px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-      transition: transform 0.2s;
-    }
-    .btn-call-action:active { transform: scale(0.92); }
-    .btn-accept-call { background: #10b981; color: white; }
-    .btn-decline-call { background: var(--danger); color: white; }
+    .input-row input[type="text"] { flex: 1; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border-color); background: rgba(15, 23, 42, 0.6); color: #fff; font-size: 14px; outline: none; }
+    .btn-send { padding: 12px 20px; border-radius: 12px; border: none; background: var(--accent-gradient); color: #0f172a; font-weight: 700; cursor: pointer; flex-shrink: 0; box-shadow: 0 4px 10px rgba(16,185,129,0.2); }
+    .icon-btn { background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; flex-shrink: 0; }
 
     #call-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-primary); z-index: 100; display: none; flex-direction: column; }
     #jitsi-container { width: 100%; height: calc(100% - 56px); }
@@ -307,25 +264,14 @@
 </head>
 <body>
 
-  <!-- Modern Toast Notification -->
+  <!-- Toast & Action Sheet -->
   <div id="toast-notification">Notification text</div>
-
-  <!-- Floating Messenger Chat Head -->
-  <div id="chat-head" title="Open Active Chat">
-    <span id="chat-head-initial">💬</span>
-    <div id="chat-head-badge">0</div>
-  </div>
-
-  <!-- Incoming Call Modal -->
-  <div id="incoming-call-modal">
-    <div class="caller-avatar" id="incoming-caller-initial">?</div>
-    <div>
-      <h2 id="incoming-caller-name" style="font-size: 26px; font-weight: 700; margin-bottom: 8px;">Incoming Call</h2>
-      <p style="color: var(--text-muted); font-size: 15px;" id="incoming-call-type">Incoming video call...</p>
-    </div>
-    <div class="call-actions">
-      <button class="btn-call-action btn-decline-call" id="decline-call-btn" title="Decline">✕</button>
-      <button class="btn-call-action btn-accept-call" id="accept-call-btn" title="Accept">📞</button>
+  <div id="action-modal">
+    <div class="action-sheet">
+      <div class="action-sheet-title" id="action-sheet-username">Options</div>
+      <button class="sheet-btn primary" id="sheet-msg-btn">💬 Send Message</button>
+      <button class="sheet-btn" id="sheet-friend-btn">➕ Add Friend</button>
+      <button class="sheet-btn cancel" id="sheet-cancel-btn">Cancel</button>
     </div>
   </div>
 
@@ -343,8 +289,6 @@
 
   <!-- Main Messenger Layout -->
   <div class="app-container" id="main-app">
-    
-    <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="user-info">
@@ -357,14 +301,12 @@
         <div class="ping-badge" id="ping-display">Ping: -- ms</div>
       </div>
 
-      <!-- Tab bar -->
       <div class="tab-bar">
         <button class="tab-btn active" id="tab-chats">CHATS</button>
         <button class="tab-btn" id="tab-requests">REQUESTS <span id="req-count"></span></button>
         <button class="tab-btn" id="tab-friends">FRIENDS</button>
       </div>
 
-      <!-- Search box for FIND view -->
       <div class="search-box" id="search-box-container">
         <input type="text" id="search-users-input" placeholder="🔍 Search users to add..." />
       </div>
@@ -376,7 +318,6 @@
         <div id="search-results-list" style="display: none;"></div>
       </div>
 
-      <!-- Floating Action Button (+) for Find/Search view -->
       <button id="fab-find" title="Find & Add Friends">+</button>
     </div>
 
@@ -384,7 +325,7 @@
     <div class="chat-area" id="chat-area">
       <div id="no-chat-selected" style="flex: 1; display: flex; justify-content: center; align-items: center; color: var(--text-muted); flex-direction: column; gap: 14px;">
         <div style="font-size: 48px; opacity: 0.5;">💬</div>
-        <div style="font-size: 15px; font-weight: 500;">Select a friend from your friends list to start chatting</div>
+        <div style="font-size: 15px; font-weight: 500;">Select a chat to start messaging</div>
       </div>
 
       <div id="active-chat-window" style="display: none; flex-direction: column; height: 100%; width: 100%;">
@@ -400,8 +341,8 @@
             </div>
           </div>
           <div style="display: flex; gap: 16px;">
-            <button class="icon-btn" id="start-voice-call-btn" title="Start Voice Call">📞</button>
-            <button class="icon-btn" id="start-video-call-btn" title="Start Video Call">📹</button>
+            <button class="icon-btn" id="start-voice-call-btn" title="Voice Call">📞</button>
+            <button class="icon-btn" id="start-video-call-btn" title="Video Call">📹</button>
           </div>
         </div>
 
@@ -411,24 +352,21 @@
           <div class="controls-bar">
             <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
               <input type="checkbox" id="hd-toggle" style="accent-color: var(--accent);" />
-              <span><b>HD File Mode</b> (Up to 1GB Storage)</span>
+              <span><b>HD File Mode</b></span>
             </label>
             <span id="selected-file-name" style="color: var(--accent); font-size: 11px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
           </div>
 
           <div class="input-row">
-            <label class="icon-btn" for="file-upload-input" title="Attach File">📎</label>
+            <label class="icon-btn" for="file-upload-input" title="Attach">📎</label>
             <input type="file" id="file-upload-input" style="display: none;" accept="image/*,video/*,.pdf,.zip,.doc" />
-            
-            <button class="icon-btn" id="record-audio-btn" title="Record Voice Note">🎙️</button>
-            
+            <button class="icon-btn" id="record-audio-btn" title="Voice Note">🎙️</button>
             <input type="text" id="message-text-input" placeholder="Type a message..." />
             <button class="btn-send" id="send-msg-btn">Send</button>
           </div>
         </div>
       </div>
 
-      <!-- Native Jitsi Call Overlay -->
       <div id="call-overlay">
         <div style="padding: 12px 20px; background: rgba(30, 41, 59, 0.9); display: flex; justify-content: space-between; align-items: center; height: 56px;">
           <span id="call-type-title" style="font-weight: 600;">Call</span>
@@ -436,14 +374,12 @@
         </div>
         <div id="jitsi-container"></div>
       </div>
-
     </div>
-
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, setDoc, doc, deleteDoc, updateDoc, arrayRemove, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, setDoc, doc, deleteDoc, updateDoc, arrayUnion, arrayRemove, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
     const firebaseConfig = {
@@ -460,8 +396,11 @@
     const storage = getStorage(app);
 
     let myName = "";
+    let isGuest = false;
     let activeFriend = null;
     let myFriendsList = [];
+    let selectedTargetUser = null;
+    let selectedTargetType = ''; // 'find' or 'friend'
 
     const loginScreen = document.getElementById('login-screen');
     const mainApp = document.getElementById('main-app');
@@ -477,18 +416,23 @@
     const fabFind = document.getElementById('fab-find');
     const searchUsersInput = document.getElementById('search-users-input');
     const toastNotification = document.getElementById('toast-notification');
+    
+    const actionModal = document.getElementById('action-modal');
+    const actionSheetUsername = document.getElementById('action-sheet-username');
+    const sheetMsgBtn = document.getElementById('sheet-msg-btn');
+    const sheetFriendBtn = document.getElementById('sheet-friend-btn');
+    const sheetCancelBtn = document.getElementById('sheet-cancel-btn');
 
     function showToast(message) {
       toastNotification.textContent = message;
       toastNotification.classList.add('show');
-      setTimeout(() => {
-        toastNotification.classList.remove('show');
-      }, 3000);
+      setTimeout(() => { toastNotification.classList.remove('show'); }, 3000);
     }
     
-    async function handleLogin(name) {
-      if (!name) return showToast("Please enter a valid name or continue as Guest!");
+    async function handleLogin(name, guestFlag = false) {
+      if (!name) return showToast("Please enter a valid name!");
       myName = name;
+      isGuest = guestFlag;
 
       document.getElementById('my-name-display').textContent = myName;
       document.getElementById('user-avatar').textContent = myName.charAt(0).toUpperCase();
@@ -506,31 +450,98 @@
       listenMyUserData();
       listenAllUsersStatus();
       listenMyFriends();
+      listenRequests();
       listenIncomingCalls();
       keepOnlineHeartbeat();
     }
 
     enterBtn.addEventListener('click', () => {
-      handleLogin(usernameInput.value.trim());
+      handleLogin(usernameInput.value.trim(), false);
     });
 
     guestBtn.addEventListener('click', () => {
       const guestName = "Guest_" + Math.floor(1000 + Math.random() * 9000);
-      handleLogin(guestName);
+      handleLogin(guestName, true);
     });
 
     async function setUserOnline() {
       if (!myName) return;
-      await setDoc(doc(db, "users", myName), { name: myName, status: "online", lastSeen: Date.now() }, { merge: true });
+      await setDoc(doc(db, "users", myName), { 
+        name: myName, 
+        status: "online", 
+        lastSeen: Date.now(), 
+        isGuest: isGuest 
+      }, { merge: true });
     }
 
     function keepOnlineHeartbeat() {
       setInterval(async () => {
         if (myName) {
-          await setDoc(doc(db, "users", myName), { status: "online", lastSeen: Date.now() }, { merge: true });
+          await setDoc(doc(db, "users", myName), { 
+            status: "online", 
+            lastSeen: Date.now(),
+            isGuest: isGuest 
+          }, { merge: true });
         }
       }, 10000);
+
+      // Check guest inactivity cleanup (1 hour = 3600000 ms)
+      if (isGuest) {
+        setInterval(async () => {
+          try {
+            const userDoc = await getDoc(doc(db, "users", myName));
+            if (userDoc.exists()) {
+              const data = userDoc.data();
+              if (data.lastSeen && (Date.now() - data.lastSeen > 3600000)) {
+                await deleteDoc(doc(db, "users", myName));
+                alert("Session expired due to 1 hour inactivity.");
+                location.reload();
+              }
+            }
+          } catch(e) { console.error(e); }
+        }, 60000);
+      }
     }
+
+    // Modal Sheet logic for clicking users
+    function openActionModal(username, type) {
+      selectedTargetUser = username;
+      selectedTargetType = type; // 'find' or 'friend'
+      actionSheetUsername.textContent = username;
+
+      if (type === 'find') {
+        sheetFriendBtn.textContent = "➕ Add Friend";
+        sheetFriendBtn.className = "sheet-btn";
+        sheetFriendBtn.style.display = "block";
+      } else if (type === 'friend') {
+        sheetFriendBtn.textContent = "❌ Unfriend";
+        sheetFriendBtn.className = "sheet-btn danger";
+        sheetFriendBtn.style.display = "block";
+      }
+
+      actionModal.style.display = "flex";
+    }
+
+    sheetCancelBtn.addEventListener('click', () => { actionModal.style.display = 'none'; });
+    actionModal.addEventListener('click', (e) => { if (e.target === actionModal) actionModal.style.display = 'none'; });
+
+    sheetMsgBtn.addEventListener('click', () => {
+      actionModal.style.display = 'none';
+      if (selectedTargetUser && typeof openChatWith === 'function') {
+        openChatWith(selectedTargetUser);
+      }
+    });
+
+    sheetFriendBtn.addEventListener('click', async () => {
+      actionModal.style.display = 'none';
+      if (selectedTargetType === 'find') {
+        await sendFriendRequest(selectedTargetUser);
+      } else if (selectedTargetType === 'friend') {
+        if (confirm(`Are you sure you want to unfriend ${selectedTargetUser}?`)) {
+          await removeFriend(selectedTargetUser);
+        }
+      }
+    });
 
     // Load All Users for FIND (+) section
     function loadFindUsers(filterKeyword = "") {
@@ -545,7 +556,7 @@
           const targetName = userData.name;
 
           if (targetName === myName) return;
-          if (targetName && targetName.startsWith("Guest_")) return; // Hide guests
+          if (myFriendsList.includes(targetName)) return; // Hide already friends
           
           if (filterKeyword && !targetName.toLowerCase().includes(filterKeyword.toLowerCase())) {
             return;
@@ -569,9 +580,10 @@
             <button class="btn-action btn-add">Add</button>
           `;
 
-          const addBtn = item.querySelector('.btn-add');
-          addBtn.addEventListener('click', async () => {
-            await sendFriendRequest(targetName);
+          item.addEventListener('click', () => openActionModal(targetName, 'find'));
+          item.querySelector('.btn-add').addEventListener('click', (e) => {
+            e.stopPropagation();
+            sendFriendRequest(targetName);
           });
 
           searchResultsDiv.appendChild(item);
@@ -602,7 +614,59 @@
       }
     }
 
-    // Load only True Friends for Friends Tab with Unfriend option
+    // Load Friend Requests to accept
+    function listenRequests() {
+      const reqQuery = query(collection(db, "requests"), where("to", "==", myName));
+      onSnapshot(reqQuery, (snapshot) => {
+        requestsListDiv.innerHTML = "";
+        let count = 0;
+        
+        snapshot.forEach((docSnap) => {
+          const reqData = docSnap.data();
+          if (reqData.status !== "pending") return;
+          count++;
+
+          const item = document.createElement('div');
+          item.className = 'list-item';
+          item.innerHTML = `
+            <div class="list-item-left">
+              <div class="avatar-icon" style="width: 38px; height: 38px; font-size: 15px;">${reqData.from.charAt(0).toUpperCase()}</div>
+              <div style="min-width: 0;">
+                <strong style="font-size: 14px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${reqData.from}</strong>
+                <div style="font-size: 11px; color: var(--text-muted);">Sent you a request</div>
+              </div>
+            </div>
+            <button class="btn-action btn-accept">Accept</button>
+          `;
+
+          item.querySelector('.btn-accept').addEventListener('click', async () => {
+            await acceptFriendRequest(docSnap.id, reqData.from);
+          });
+
+          requestsListDiv.appendChild(item);
+        });
+
+        const badge = document.getElementById('req-count');
+        badge.textContent = count > 0 ? `(${count})` : '';
+      });
+    }
+
+    async function acceptFriendRequest(docId, senderName) {
+      try {
+        await updateDoc(doc(db, "requests", docId), { status: "accepted" });
+        
+        // Add each other to friends array
+        await updateDoc(doc(db, "users", myName), { friends: arrayUnion(senderName) });
+        await updateDoc(doc(db, "users", senderName), { friends: arrayUnion(myName) });
+
+        showToast(`You are now friends with ${senderName}!`);
+        switchTab('chats');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // Load Confirmed Friends for Friends Tab & Chats Tab
     function listenMyFriends() {
       const userDocRef = doc(db, "users", myName);
       
@@ -612,15 +676,19 @@
         myFriendsList = data.friends || [];
         
         friendsListDiv.innerHTML = "";
+        chatsListDiv.innerHTML = "";
+
         if (myFriendsList.length === 0) {
           friendsListDiv.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 13px;">No friends added yet.<br>Tap (+) to find & add friends!</div>`;
+          chatsListDiv.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 13px;">No active chats.<br>Add friends to start chatting!</div>`;
           return;
         }
 
         myFriendsList.forEach(friendName => {
-          const item = document.createElement('div');
-          item.className = 'list-item';
-          item.innerHTML = `
+          // Render in Friends Tab
+          const friendItem = document.createElement('div');
+          friendItem.className = 'list-item';
+          friendItem.innerHTML = `
             <div class="list-item-left">
               <div class="avatar-icon" style="width: 38px; height: 38px; font-size: 15px;">${friendName.charAt(0).toUpperCase()}</div>
               <div style="min-width: 0;">
@@ -628,34 +696,43 @@
                 <div style="font-size: 11px; color: var(--accent);">Friend</div>
               </div>
             </div>
-            <button class="btn-action btn-unfriend">Unfriend</button>
+            <button class="btn-action" style="background: rgba(239,68,68,0.15); color: #f87171;">Unfriend</button>
           `;
 
-          item.querySelector('.list-item-left').addEventListener('click', () => {
-            if (typeof openChatWith === 'function') openChatWith(friendName);
-          });
-
-          const unfriendBtn = item.querySelector('.btn-unfriend');
-          unfriendBtn.addEventListener('click', async (e) => {
+          friendItem.addEventListener('click', () => openActionModal(friendName, 'friend'));
+          friendItem.querySelector('button').addEventListener('click', async (e) => {
             e.stopPropagation();
             if (confirm(`Are you sure you want to unfriend ${friendName}?`)) {
               await removeFriend(friendName);
             }
           });
+          friendsListDiv.appendChild(friendItem);
 
-          friendsListDiv.appendChild(item);
+          // Render in Chats Tab
+          const chatItem = document.createElement('div');
+          chatItem.className = 'list-item';
+          chatItem.innerHTML = `
+            <div class="list-item-left">
+              <div class="avatar-icon" style="width: 38px; height: 38px; font-size: 15px;">${friendName.charAt(0).toUpperCase()}</div>
+              <div style="min-width: 0;">
+                <strong style="font-size: 14px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${friendName}</strong>
+                <div style="font-size: 11px; color: var(--text-muted);">Tap to chat</div>
+              </div>
+            </div>
+          `;
+
+          chatItem.addEventListener('click', () => {
+            if (typeof openChatWith === 'function') openChatWith(friendName);
+          });
+          chatsListDiv.appendChild(chatItem);
         });
       });
     }
 
     async function removeFriend(friendName) {
       try {
-        await updateDoc(doc(db, "users", myName), {
-          friends: arrayRemove(friendName)
-        });
-        await updateDoc(doc(db, "users", friendName), {
-          friends: arrayRemove(myName)
-        });
+        await updateDoc(doc(db, "users", myName), { friends: arrayRemove(friendName) });
+        await updateDoc(doc(db, "users", friendName), { friends: arrayRemove(myName) });
         showToast(`You have unfriended ${friendName}.`);
       } catch (err) {
         console.error("Error unfriending:", err);
@@ -697,14 +774,26 @@
     tabRequests.addEventListener('click', () => switchTab('requests'));
     tabFriends.addEventListener('click', () => switchTab('friends'));
 
-    // FAB (+) click opens FIND / Search view
     fabFind.addEventListener('click', () => {
       switchTab('find');
       loadFindUsers();
       searchUsersInput.focus();
     });
 
-    // Placeholders for remaining chat & call listeners
+    // Chat opening stub function for message integration
+    window.openChatWith = function(friendName) {
+      activeFriend = friendName;
+      document.getElementById('no-chat-selected').style.display = 'none';
+      document.getElementById('active-chat-window').style.display = 'flex';
+      document.getElementById('active-friend-name').textContent = friendName;
+      document.getElementById('active-friend-avatar').textContent = friendName.charAt(0).toUpperCase();
+      document.getElementById('chat-area').classList.add('active');
+    };
+
+    document.getElementById('back-to-list').addEventListener('click', () => {
+      document.getElementById('chat-area').classList.remove('active');
+    });
+
     function startPingMeasurement() {}
     function listenMyUserData() {}
     function listenAllUsersStatus() {}
