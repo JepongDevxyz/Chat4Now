@@ -1,632 +1,310 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Chat4Now Messenger</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat4Now - WebRTC & Messenger Call</title>
+  <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
   <style>
-    :root {
-      --bg-primary: #0f172a;
-      --bg-secondary: #1e293b;
-      --bg-card: #1e293b;
-      --bg-hover: #334155;
-      --accent: #10b981;
-      --accent-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --border-color: rgba(255, 255, 255, 0.08);
-      --danger: #ef4444;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    body { display: flex; height: 100vh; background: #f0f2f5; }
     
-    html, body { 
-      height: 100%; 
-      height: 100dvh; 
-      width: 100vw; 
-      overflow: hidden; 
-      background-color: var(--bg-primary); 
-      color: var(--text-main); 
+    #sidebar { width: 320px; background: #fff; border-right: 1px solid #e5e5e5; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+    #chat-area { flex: 1; display: flex; flex-direction: column; position: relative; }
+    
+    .user-card { padding: 12px; background: #f8f9fa; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin-bottom: 5px; border: 1px solid #eee; }
+    .user-card:hover { background: #e9ecef; }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .online { background: #31a24c; }
+    .offline { background: #b0b3b8; }
+    .status-subtext { font-size: 0.75rem; color: #65676b; }
+    
+    .chat-logs { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .log-message { text-align: center; color: #65676b; font-size: 0.85rem; font-style: italic; background: #e4e6eb; padding: 6px 12px; border-radius: 12px; align-self: center; margin: 4px 0; }
+
+    #user-modal { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 500; min-width: 250px; text-align: center; }
+    .modal-btns { margin-top: 15px; display: flex; gap: 8px; justify-content: center; }
+
+    #call-screen {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: #18191a; display: none;
+      flex-direction: column; align-items: center; justify-content: space-between;
+      padding: 30px; z-index: 1000;
     }
-
-    body { display: flex; justify-content: center; align-items: center; }
-
-    .app-container { 
-      width: 100vw; 
-      height: 100vh; 
-      height: 100dvh; 
-      max-width: 1200px; 
-      display: flex; 
-      background: var(--bg-secondary); 
-      position: relative; 
-      overflow: hidden; 
-    }
-
-    @media (min-width: 768px) { 
-      .app-container { 
-        height: 92vh;
-        height: 92dvh; 
-        max-height: 880px; 
-        border-radius: 20px; 
-        box-shadow: 0 20px 40px rgba(0,0,0,0.6); 
-        border: 1px solid var(--border-color);
-      } 
-    }
-
-    /* Toast Notification */
-    #toast-notification {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%) translateY(-100px);
-      background: #334155;
-      color: #fff;
-      padding: 12px 24px;
-      border-radius: 30px;
-      font-size: 14px;
-      font-weight: 500;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-      z-index: 99999;
-      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      border: 1px solid rgba(255,255,255,0.1);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      max-width: 90%;
-      text-align: center;
-    }
-    #toast-notification.show { transform: translateX(-50%) translateY(0); }
-
-    /* Login Screen */
-    .login-overlay {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-
-    .login-card { 
-      background: rgba(30, 41, 59, 0.7); 
-      backdrop-filter: blur(16px);
-      padding: 40px 30px; 
-      border-radius: 24px; 
-      width: 90%; 
-      max-width: 400px; 
-      text-align: center; 
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); 
-      border: 1px solid var(--border-color);
-    }
-    .login-logo {
-      width: 70px; height: 70px;
-      background: var(--accent-gradient);
-      border-radius: 20px;
-      margin: 0 auto 20px auto;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 32px;
-      box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
-    }
-    .login-card h1 { color: #fff; font-size: 26px; font-weight: 700; margin-bottom: 6px; }
-    .login-card p { color: var(--text-muted); font-size: 14px; margin-bottom: 24px; }
-    .login-card input { width: 100%; padding: 14px 18px; border-radius: 12px; border: 1px solid var(--border-color); background: rgba(15, 23, 42, 0.6); color: #fff; margin-bottom: 14px; font-size: 15px; outline: none; transition: all 0.3s; }
-    .login-card input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15); }
-    .btn-login { width: 100%; padding: 14px; border-radius: 12px; border: none; background: var(--accent-gradient); color: #0f172a; font-weight: 700; font-size: 16px; cursor: pointer; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(16,185,129,0.2); }
-
-    #main-app { display: none; width: 100%; height: 100%; height: 100dvh; flex-direction: row; }
-
-    /* Sidebar */
-    .sidebar { 
-      width: 100%; 
-      max-width: 380px; 
-      background: var(--bg-secondary); 
-      border-right: 1px solid var(--border-color); 
-      display: flex; 
-      flex-direction: column; 
-      height: 100%; 
-      z-index: 10;
-      position: relative;
-    }
-
-    @media (max-width: 768px) { 
-      .sidebar { max-width: 100%; width: 100%; } 
-      .chat-area { display: none !important; } 
-      .chat-area.active { display: flex !important; position: absolute; top: 0; left: 0; width: 100vw; height: 100%; height: 100dvh; z-index: 30; } 
-    }
-
-    .sidebar-header { background: rgba(30, 41, 59, 0.9); backdrop-filter: blur(10px); padding: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
-    .user-info { display: flex; align-items: center; gap: 12px; min-width: 0; }
-    .avatar-icon { width: 44px; height: 44px; border-radius: 50%; background: var(--accent-gradient); color: #0f172a; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; flex-shrink: 0; box-shadow: 0 4px 10px rgba(16,185,129,0.2); }
-
-    .tab-bar { display: flex; background: rgba(15, 23, 42, 0.4); padding: 6px; margin: 12px 12px 4px 12px; border-radius: 12px; border: 1px solid var(--border-color); flex-shrink: 0; }
-    .tab-btn { flex: 1; padding: 10px 0; background: none; border: none; color: var(--text-muted); font-weight: 600; font-size: 11px; cursor: pointer; border-radius: 8px; transition: all 0.2s ease; text-align: center; }
-    .tab-btn.active { color: #fff; background: rgba(255, 255, 255, 0.08); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-
-    .list-container { flex: 1; overflow-y: auto; padding: 8px 12px; position: relative; }
-    .list-container::-webkit-scrollbar { width: 4px; }
-    .list-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-
-    .search-box { padding: 8px 12px 4px 12px; background: transparent; flex-shrink: 0; display: none; }
-    .search-box input { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border-color); background: rgba(15, 23, 42, 0.5); color: #fff; font-size: 14px; outline: none; transition: all 0.3s; }
-    .search-box input:focus { border-color: var(--accent); background: rgba(15, 23, 42, 0.8); }
-
-    .list-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 12px; margin-bottom: 6px; background: transparent; cursor: pointer; transition: background 0.2s; border: 1px solid transparent; }
-    .list-item:hover { background: var(--bg-hover); border-color: var(--border-color); }
-    .list-item-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
-
-    .btn-action { padding: 6px 12px; border-radius: 8px; border: none; font-size: 11px; font-weight: 700; cursor: pointer; transition: transform 0.1s; flex-shrink: 0; background: var(--accent); color: #0f172a; margin-left: 4px; }
-    .btn-action.secondary { background: rgba(255,255,255,0.1); color: #fff; }
-    .btn-action.danger { background: var(--danger); color: #fff; }
-    .btn-action:active { transform: scale(0.95); }
-
-    #fab-find {
-      position: absolute;
-      bottom: 24px;
-      right: 24px;
-      width: 58px;
-      height: 58px;
-      background: var(--accent-gradient);
-      border-radius: 50%;
-      border: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #0f172a;
-      font-size: 28px;
-      font-weight: bold;
-      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
-      cursor: pointer;
-      z-index: 20;
-      transition: transform 0.2s;
-    }
-    #fab-find:hover { transform: scale(1.05); }
-
-    /* Chat Area */
-    .chat-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-primary); height: 100%; width: 100%; position: relative; overflow: hidden; }
-
-    .chat-header { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(10px); padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); flex-shrink: 0; height: 68px; }
-
-    .back-btn { display: none; background: none; border: none; color: var(--accent); font-size: 22px; cursor: pointer; margin-right: 12px; flex-shrink: 0; }
-    @media (max-width: 768px) { .back-btn { display: block; } }
-
-    .messages-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; background: radial-gradient(circle at center, rgba(30,41,59,0.2) 0%, transparent 100%); }
-
-    .message-bubble { max-width: 75%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.5; word-wrap: break-word; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    .msg-incoming { background: var(--bg-secondary); align-self: flex-start; color: var(--text-main); border-bottom-left-radius: 4px; border: 1px solid var(--border-color); }
-    .msg-outgoing { background: #059669; align-self: flex-end; color: #fff; border-bottom-right-radius: 4px; }
-    .msg-sender { font-size: 11px; font-weight: 700; color: #34d399; margin-bottom: 3px; }
-
-    .chat-footer { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(10px); padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--border-color); flex-shrink: 0; width: 100%; }
-    .controls-bar { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-muted); height: 18px; }
-    .input-row { display: flex; align-items: center; gap: 10px; width: 100%; }
-    .input-row input[type="text"] { flex: 1; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border-color); background: rgba(15, 23, 42, 0.6); color: #fff; font-size: 14px; outline: none; min-width: 0; }
-    .btn-send { padding: 12px 20px; border-radius: 12px; border: none; background: var(--accent-gradient); color: #0f172a; font-weight: 700; cursor: pointer; flex-shrink: 0; box-shadow: 0 4px 10px rgba(16,185,129,0.2); }
+    #video-grid { display: flex; width: 100%; height: 80%; position: relative; justify-content: center; align-items: center; }
+    video { background: #000; border-radius: 12px; object-fit: cover; }
+    #remote-video { width: 100%; height: 100%; }
+    #local-video { width: 140px; height: 180px; position: absolute; bottom: 15px; right: 15px; border: 2px solid #fff; z-index: 1001; }
+    
+    .call-controls { display: flex; gap: 15px; z-index: 1002; }
+    .btn { padding: 10px 20px; border: none; border-radius: 20px; font-weight: bold; cursor: pointer; }
+    .btn-danger { background: #fa3e3e; color: white; }
+    .btn-success { background: #0084ff; color: white; }
+    .btn-secondary { background: #e4e6eb; color: #050505; }
   </style>
 </head>
 <body>
 
-  <div id="toast-notification">Notification text</div>
-
-  <!-- Login Screen -->
-  <div class="login-overlay" id="login-screen">
-    <div class="login-card">
-      <div class="login-logo">💬</div>
-      <h1>Chat4Now</h1>
-      <p>Live Firebase Messenger</p>
-      <input type="text" id="username-input" placeholder="Enter your name..." />
-      <button class="btn-login" id="enter-btn">Start Messaging</button>
-    </div>
+  <div id="sidebar">
+    <h3>Users</h3>
+    <div id="user-list"></div>
   </div>
 
-  <!-- Main Messenger Layout -->
-  <div class="app-container" id="main-app">
-    <div class="sidebar" id="sidebar">
-      <div class="sidebar-header">
-        <div class="user-info">
-          <div class="avatar-icon" id="user-avatar">U</div>
-          <div style="min-width: 0;">
-            <strong id="my-name-display" style="font-size: 15px; font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">User</strong>
-            <div style="font-size: 11px; color: var(--accent); font-weight: 500;">● Live Connected</div>
-          </div>
-        </div>
-      </div>
+  <div id="chat-area">
+    <div class="chat-logs" id="chat-logs"></div>
 
-      <div class="tab-bar">
-        <button class="tab-btn active" id="tab-chats">CHATS</button>
-        <button class="tab-btn" id="tab-users">USERS</button>
-        <button class="tab-btn" id="tab-friends">FRIENDS</button>
+    <div id="user-modal">
+      <h4 id="modal-username">User Options</h4>
+      <div class="modal-btns">
+        <button class="btn btn-success" id="modal-msg-btn">Message</button>
+        <button class="btn btn-secondary" id="modal-friend-btn">Add Friend</button>
+        <button class="btn btn-danger" onclick="closeModal()">Close</button>
       </div>
-
-      <div class="search-box" id="search-box-container">
-        <input type="text" id="search-users-input" placeholder="🔍 Search users..." />
-      </div>
-
-      <div class="list-container">
-        <div id="chats-list"></div>
-        <div id="users-list" style="display: none;"></div>
-        <div id="friends-list" style="display: none;"></div>
-      </div>
-
-      <button id="fab-find" title="Browse Existing Users">+</button>
     </div>
 
-    <!-- Main Chat Window -->
-    <div class="chat-area" id="chat-area">
-      <div id="no-chat-selected" style="flex: 1; display: flex; justify-content: center; align-items: center; color: var(--text-muted); flex-direction: column; gap: 14px; text-align: center; padding: 20px;">
-        <div style="font-size: 48px; opacity: 0.5;">💬</div>
-        <div style="font-size: 15px; font-weight: 500;">Pili o pumili ng kaibigan/user para magsimula ng chat</div>
+    <div id="call-screen">
+      <h2 id="call-status-text" style="color: white;">Calling...</h2>
+      <div id="video-grid">
+        <video id="remote-video" autoplay playsinline></video>
+        <video id="local-video" autoplay playsinline muted></video>
       </div>
-
-      <div id="active-chat-window" style="display: none; flex-direction: column; height: 100%; width: 100%;">
-        <div class="chat-header">
-          <div style="display: flex; align-items: center; min-width: 0;">
-            <button class="back-btn" id="back-to-sidebar">←</button>
-            <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
-              <div class="avatar-icon" id="active-chat-avatar" style="width: 40px; height: 40px; font-size: 16px;">#</div>
-              <div style="min-width: 0;">
-                <strong id="active-chat-name" style="font-size: 15px; font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Global Chat</strong>
-                <div style="font-size: 11px; color: var(--accent);">● Real-time Firestore</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="messages-box" id="messages-box"></div>
-
-        <div class="chat-footer">
-          <div class="controls-bar">
-            <span id="typing-indicator" style="font-style: italic; color: var(--accent); font-size: 12px;"></span>
-            <span id="char-counter">0/500</span>
-          </div>
-          <div class="input-row">
-            <input type="text" id="message-input" placeholder="Type a message..." maxlength="500" />
-            <button class="btn-send" id="send-btn">Send</button>
-          </div>
-        </div>
+      <div class="call-controls">
+        <button class="btn btn-danger" id="end-call-btn">End Call</button>
       </div>
     </div>
   </div>
 
-  <!-- Firebase SDK v10 Modular Imports -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
-    import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  <audio id="audio-ringtone" loop src="https://assets.mixkit.co/active_storage/sfx/1360/1360-preview.mp3"></audio>
+  <audio id="audio-ringback" loop src="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3"></audio>
+  <audio id="audio-offline" src="https://assets.mixkit.co/active_storage/sfx/2573/2573-preview.mp3"></audio>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyC3mJ-9-hv85jZiAsGi_kuuZjj_mmjAUmQ",
-      authDomain: "chat4now-orforever.firebaseapp.com",
-      projectId: "chat4now-orforever",
-      storageBucket: "chat4now-orforever.firebasestorage.app",
-      messagingSenderId: "1027816238177",
-      appId: "1:1027816238177:web:9b3794c53f4d194cbc4e20",
-      measurementId: "G-KCH61T1TYP"
-    };
+  <script>
+    const currentUser = "Jepong_" + Math.floor(Math.random() * 1000);
+    const isGuest = true;
 
-    const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
-    const db = getFirestore(app);
+    let pusher, globalChannel, userChannel;
+    let peerConnection;
+    let localStream;
+    let activeCallTarget = null;
+    let friendsSet = new Set();
+    let usersData = {};
 
-    let currentUsername = "";
-    let currentRoomId = "global_chat";
-    let unsubscribeMessages = null;
+    const ringtone = document.getElementById("audio-ringtone");
+    const ringback = document.getElementById("audio-ringback");
+    const offlineSound = document.getElementById("audio-offline");
 
-    const loginScreen = document.getElementById('login-screen');
-    const mainApp = document.getElementById('main-app');
-    const usernameInput = document.getElementById('username-input');
-    const enterBtn = document.getElementById('enter-btn');
-    const myNameDisplay = document.getElementById('my-name-display');
-    const userAvatar = document.getElementById('user-avatar');
-    const toast = document.getElementById('toast-notification');
-
-    function showToast(message) {
-      toast.textContent = message;
-      toast.classList.add('show');
-      setTimeout(() => { toast.classList.remove('show'); }, 3000);
+    function stopAllAudio() {
+      ringtone.pause(); ringtone.currentTime = 0;
+      ringback.pause(); ringback.currentTime = 0;
+      offlineSound.pause(); offlineSound.currentTime = 0;
     }
 
-    async function handleLogin() {
-      const name = usernameInput.value.trim();
-      if (!name) {
-        showToast("Maglagay muna ng pangalan, Jepong!");
+    async function sendApiRequest(data) {
+      return fetch('/api/message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+    }
+
+    // INITIALIZE APP WITH ENV VARS FROM BACKEND
+    async function initApp() {
+      try {
+        const res = await fetch('/api/message?action=config');
+        const config = await res.json();
+
+        pusher = new Pusher(config.key, { cluster: config.cluster });
+        globalChannel = pusher.subscribe("chat-channel");
+        userChannel = pusher.subscribe(`user-${currentUser}`);
+
+        setupPusherListeners();
+        sendApiRequest({ action: 'user-status', user: currentUser, status: 'online' });
+      } catch (err) {
+        console.error("Failed to load environment configuration:", err);
+      }
+    }
+
+    function setupPusherListeners() {
+      globalChannel.bind("status-change", (data) => {
+        usersData[data.userId] = { status: data.status, lastSeen: data.lastSeen };
+        renderUserList();
+      });
+
+      userChannel.bind("incoming-call", async (data) => {
+        activeCallTarget = data.fromUserId;
+        ringtone.play();
+
+        if (confirm(`Incoming call from ${data.fromUserId}. Accept?`)) {
+          stopAllAudio();
+          await startWebRTC(data.fromUserId, data.isVideo);
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+
+          const answer = await peerConnection.createAnswer();
+          await peerConnection.setLocalDescription(answer);
+
+          document.getElementById("call-screen").style.display = "flex";
+          sendApiRequest({ action: 'answer-call', toUserId: data.fromUserId, answer });
+        } else {
+          stopAllAudio();
+          sendApiRequest({ action: 'end-call', toUserId: data.fromUserId, fromUserId: currentUser, logType: 'missed' });
+        }
+      });
+
+      userChannel.bind("call-answered", async (data) => {
+        stopAllAudio();
+        document.getElementById("call-status-text").innerText = "Connected";
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+      });
+
+      userChannel.bind("ice-candidate", async (data) => {
+        if (peerConnection) {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+        }
+      });
+
+      userChannel.bind("call-ended", (data) => {
+        const msg = data.logType === 'missed' ? `You missed a call from ${data.fromUserId}` : `Call ended with ${data.fromUserId}`;
+        terminateCallLocally(msg);
+      });
+    }
+
+    function getFormattedLastSeen(timestamp) {
+      if (!timestamp) return "Offline";
+      const seconds = Math.floor((Date.now() - timestamp) / 1000);
+      if (seconds < 60) return "Offline just now";
+      const mins = Math.floor(seconds / 60);
+      if (mins < 60) return `Offline ${mins}m ago`;
+      const hours = Math.floor(mins / 60);
+      return `Offline ${hours}h ago`;
+    }
+
+    const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+
+    async function startWebRTC(targetUserId, isVideo = true) {
+      activeCallTarget = targetUserId;
+      peerConnection = new RTCPeerConnection(rtcConfig);
+
+      localStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true });
+      document.getElementById("local-video").srcObject = localStream;
+      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+      peerConnection.ontrack = (event) => {
+        document.getElementById("remote-video").srcObject = event.streams[0];
+      };
+
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+          sendApiRequest({ action: 'ice-candidate', toUserId: targetUserId, candidate: event.candidate });
+        }
+      };
+    }
+
+    async function startCall(targetUserId, isVideo = true) {
+      const target = usersData[targetUserId];
+      
+      if (!target || target.status === 'offline') {
+        offlineSound.play();
+        appendLogMessage(`Cannot call ${targetUserId}. User is offline.`);
         return;
       }
-      currentUsername = name;
-      myNameDisplay.textContent = currentUsername;
-      userAvatar.textContent = currentUsername.charAt(0).toUpperCase();
-      
-      // I-save ang user sa Firebase `users` collection para makita ng iba
-      try {
-        await setDoc(doc(db, "users", currentUsername), {
-          username: currentUsername,
-          lastActive: serverTimestamp()
-        });
-      } catch (err) {
-        console.error("Error saving user:", err);
-      }
 
-      loginScreen.style.display = 'none';
-      mainApp.style.display = 'flex';
-      showToast(`Welcome, ${currentUsername}!`);
+      ringback.play();
+      await startWebRTC(targetUserId, isVideo);
+      document.getElementById("call-screen").style.display = "flex";
+
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
       
-      openChatRoom("global_chat", "Global Chat Room");
+      sendApiRequest({ action: 'call-user', toUserId: targetUserId, fromUserId: currentUser, offer, isVideo });
     }
 
-    enterBtn.addEventListener('click', handleLogin);
-    usernameInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleLogin(); });
-
-    // Tabs Navigation
-    const tabChats = document.getElementById('tab-chats');
-    const tabUsers = document.getElementById('tab-users');
-    const tabFriends = document.getElementById('tab-friends');
-    const chatsList = document.getElementById('chats-list');
-    const usersList = document.getElementById('users-list');
-    const friendsList = document.getElementById('friends-list');
-    const searchBoxContainer = document.getElementById('search-box-container');
-    const fabFind = document.getElementById('fab-find');
-
-    function switchTab(activeTab) {
-      tabChats.classList.remove('active');
-      tabUsers.classList.remove('active');
-      tabFriends.classList.remove('active');
-      chatsList.style.display = 'none';
-      usersList.style.display = 'none';
-      friendsList.style.display = 'none';
-      searchBoxContainer.style.display = 'none';
-
-      if(activeTab === 'chats') {
-        tabChats.classList.add('active');
-        chatsList.style.display = 'block';
-      } else if(activeTab === 'users') {
-        tabUsers.classList.add('active');
-        usersList.style.display = 'block';
-        searchBoxContainer.style.display = 'block';
-        loadAllUsers();
-      } else if(activeTab === 'friends') {
-        tabFriends.classList.add('active');
-        friendsList.style.display = 'block';
-        loadFriends();
-      }
-    }
-
-    tabChats.addEventListener('click', () => switchTab('chats'));
-    tabUsers.addEventListener('click', () => switchTab('users'));
-    tabFriends.addEventListener('click', () => switchTab('friends'));
-
-    // Pag pinindot ang (+) button, diretsong mapupunta sa USERS tab para makita ang existing users
-    fabFind.addEventListener('click', () => {
-      switchTab('users');
-      showToast("Listahan ng mga existing users sa Firebase");
+    document.getElementById("end-call-btn").addEventListener("click", () => {
+      sendApiRequest({ action: 'end-call', toUserId: activeCallTarget, fromUserId: currentUser, logType: 'ended' });
+      terminateCallLocally(`Call ended with ${activeCallTarget}`);
     });
 
-    // Render Static Rooms
-    function renderRooms() {
-      chatsList.innerHTML = `
-        <div class="list-item" onclick="openChatRoom('global_chat', 'Global Chat Room')">
-          <div class="list-item-left">
-            <div class="avatar-icon" style="width: 38px; height: 38px; font-size: 14px;">#</div>
-            <div style="min-width: 0;">
-              <div style="font-weight: 600; font-size: 14px; color: #fff;">Global Chat Room</div>
-              <div style="font-size: 12px; color: var(--text-muted);">Pampublikong silid</div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-    renderRooms();
-
-    // Load Existing Users from Firebase
-    async function loadAllUsers() {
-      usersList.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 15px; font-size: 13px;">Kinukuha ang mga users...</div>`;
-      try {
-        const querySnapshot = await getDocs(collection(db, "users"));
-        usersList.innerHTML = "";
-        
-        let found = false;
-        querySnapshot.forEach((docSnap) => {
-          const userData = docSnap.data();
-          const uname = userData.username;
-          
-          if (uname === currentUsername) return; // Huwag ipakita ang sarili
-          found = true;
-
-          const item = document.createElement('div');
-          item.className = 'list-item';
-          item.innerHTML = `
-            <div class="list-item-left">
-              <div class="avatar-icon" style="width: 38px; height: 38px; font-size: 14px; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">${uname.charAt(0).toUpperCase()}</div>
-              <div style="min-width: 0;">
-                <div style="font-weight: 600; font-size: 14px; color: #fff;">${escapeHtml(uname)}</div>
-                <div style="font-size: 11px; color: var(--accent);">Online User</div>
-              </div>
-            </div>
-            <div style="display: flex;">
-              <button class="btn-action secondary" onclick="startPrivateChat('${uname}')">Message</button>
-              <button class="btn-action" onclick="addFriend('${uname}')">Add Friend</button>
-            </div>
-          `;
-          usersList.appendChild(item);
-        });
-
-        if (!found) {
-          usersList.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 15px; font-size: 13px;">Wala pang ibang user sa database.</div>`;
-        }
-      } catch (err) {
-        console.error(err);
-        usersList.innerHTML = `<div style="text-align: center; color: var(--danger); padding: 15px; font-size: 13px;">May error sa pagkuha ng users.</div>`;
-      }
+    function terminateCallLocally(logText = null) {
+      stopAllAudio();
+      if (peerConnection) { peerConnection.close(); peerConnection = null; }
+      if (localStream) { localStream.getTracks().forEach(track => track.stop()); }
+      document.getElementById("call-screen").style.display = "none";
+      if (logText) appendLogMessage(logText);
+      activeCallTarget = null;
     }
 
-    // Add Friend function to Firebase
-    window.addFriend = async function(friendName) {
-      try {
-        await setDoc(doc(db, "users", currentUsername, "friends", friendName), {
-          username: friendName,
-          addedAt: serverTimestamp()
-        });
-        showToast(`Naidagdag na si ${friendName} sa iyong friends!`);
-      } catch (err) {
-        console.error(err);
-        showToast("Hindi naidagdag bilang friend.");
-      }
-    };
-
-    // Load Friends from Firebase
-    async function loadFriends() {
-      friendsList.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 15px; font-size: 13px;">Kinukuha ang iyong friends...</div>`;
-      try {
-        const querySnapshot = await getDocs(collection(db, "users", currentUsername, "friends"));
-        friendsList.innerHTML = "";
-
-        let found = false;
-        querySnapshot.forEach((docSnap) => {
-          const friendData = docSnap.data();
-          const fname = friendData.username;
-          found = true;
-
-          const item = document.createElement('div');
-          item.className = 'list-item';
-          item.innerHTML = `
-            <div class="list-item-left">
-              <div class="avatar-icon" style="width: 38px; height: 38px; font-size: 14px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">${fname.charAt(0).toUpperCase()}</div>
-              <div style="min-width: 0;">
-                <div style="font-weight: 600; font-size: 14px; color: #fff;">${escapeHtml(fname)}</div>
-                <div style="font-size: 11px; color: var(--accent);">Kaibigan</div>
-              </div>
-            </div>
-            <div style="display: flex;">
-              <button class="btn-action secondary" onclick="startPrivateChat('${fname}')">Message</button>
-              <button class="btn-action danger" onclick="unfriendUser('${fname}')">Unfriend</button>
-            </div>
-          `;
-          friendsList.appendChild(item);
-        });
-
-        if (!found) {
-          friendsList.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 15px; font-size: 13px;">Wala ka pang idinadagdag na friends. Pindutin ang (+) para mag-add!</div>`;
-        }
-      } catch (err) {
-        console.error(err);
-        friendsList.innerHTML = `<div style="text-align: center; color: var(--danger); padding: 15px; font-size: 13px;">Error sa pagkuha ng friends.</div>`;
-      }
+    function appendLogMessage(text) {
+      const logs = document.getElementById("chat-logs");
+      const div = document.createElement("div");
+      div.className = "log-message";
+      div.innerText = text;
+      logs.appendChild(div);
     }
 
-    // Unfriend function from Firebase
-    window.unfriendUser = async function(friendName) {
-      try {
-        await deleteDoc(doc(db, "users", currentUsername, "friends", friendName));
-        showToast(`Naalis na si ${friendName} sa iyong friends.`);
-        loadFriends();
-      } catch (err) {
-        console.error(err);
-        showToast("Hindi ma-unfriend.");
-      }
-    };
+    function openUserModal(targetUserId) {
+      const modal = document.getElementById("user-modal");
+      document.getElementById("modal-username").innerText = targetUserId;
+      const friendBtn = document.getElementById("modal-friend-btn");
 
-    // Direct / Private Chat Room Generator
-    window.startPrivateChat = function(otherUser) {
-      // Gumawa ng consistent Room ID para sa dalawang users kahit baligtad ang tawag
-      const sortedNames = [currentUsername, otherUser].sort();
-      const roomId = `private_${sortedNames[0]}_${sortedNames[1]}`;
-      openChatRoom(roomId, otherUser);
-    };
-
-    // Chat Opening & Firestore Real-time Listener
-    const chatArea = document.getElementById('chat-area');
-    const noChatSelected = document.getElementById('no-chat-selected');
-    const activeChatWindow = document.getElementById('active-chat-window');
-    const activeChatName = document.getElementById('active-chat-name');
-    const activeChatAvatar = document.getElementById('active-chat-avatar');
-    const backToSidebar = document.getElementById('back-to-sidebar');
-    const messagesBox = document.getElementById('messages-box');
-
-    window.openChatRoom = function(roomId, roomTitle) {
-      currentRoomId = roomId;
-      noChatSelected.style.display = 'none';
-      activeChatWindow.style.display = 'flex';
-      activeChatName.textContent = roomTitle;
-      activeChatAvatar.textContent = roomTitle.charAt(0).toUpperCase();
-      if (window.innerWidth <= 768) { chatArea.classList.add('active'); }
-
-      if (unsubscribeMessages) {
-        unsubscribeMessages();
-      }
-
-      messagesBox.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; margin-top: 20px;">Naglo-load ng live messages...</div>';
-
-      const q = query(collection(db, "rooms", currentRoomId, "messages"), orderBy("timestamp", "asc"));
-      
-      unsubscribeMessages = onSnapshot(q, (snapshot) => {
-        messagesBox.innerHTML = "";
-        if (snapshot.empty) {
-          messagesBox.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; margin-top: 20px;">Wala pang mensahe rito. Magpadala na!</div>';
-          return;
-        }
-
-        snapshot.forEach((docSnap) => {
-          const data = docSnap.data();
-          const isMe = data.sender === currentUsername;
-          const msgDiv = document.createElement('div');
-          msgDiv.className = `message-bubble ${isMe ? 'msg-outgoing' : 'msg-incoming'}`;
-          
-          let contentHtml = "";
-          if (!isMe) {
-            contentHtml += `<div class="msg-sender">${escapeHtml(data.sender)}</div>`;
+      if (friendsSet.has(targetUserId)) {
+        friendBtn.innerText = "Unfriend";
+        friendBtn.onclick = () => {
+          friendsSet.delete(targetUserId);
+          sendApiRequest({ action: 'unfriend', toUserId: targetUserId, fromUserId: currentUser });
+          closeModal();
+          renderUserList();
+        };
+      } else {
+        friendBtn.innerText = "Add Friend";
+        friendBtn.onclick = () => {
+          if (isGuest) {
+            alert("Guest accounts cannot send friend requests.");
+            return;
           }
-          contentHtml += escapeHtml(data.text);
-          msgDiv.innerHTML = contentHtml;
-          messagesBox.appendChild(msgDiv);
-        });
-
-        messagesBox.scrollTop = messagesBox.scrollHeight;
-      }, (error) => {
-        console.error("Firestore Error:", error);
-      });
-    };
-
-    backToSidebar.addEventListener('click', () => { chatArea.classList.remove('active'); });
-
-    // Send Message
-    const messageInput = document.getElementById('message-input');
-    const sendBtn = document.getElementById('send-btn');
-    const charCounter = document.getElementById('char-counter');
-
-    messageInput.addEventListener('input', () => {
-      const len = messageInput.value.length;
-      charCounter.textContent = `${len}/500`;
-    });
-
-    async function sendFirebaseMessage() {
-      const text = messageInput.value.trim();
-      if (!text) return;
-      if (!currentUsername) return;
-
-      const msgText = text;
-      messageInput.value = '';
-      charCounter.textContent = '0/500';
-
-      try {
-        await addDoc(collection(db, "rooms", currentRoomId, "messages"), {
-          sender: currentUsername,
-          text: msgText,
-          timestamp: serverTimestamp()
-        });
-      } catch (err) {
-        console.error("Error sending message:", err);
-        showToast("Hindi naipadala ang mensahe.");
+          sendApiRequest({ action: 'friend-request', toUserId: targetUserId, fromUserId: currentUser, isGuest });
+          closeModal();
+        };
       }
+
+      document.getElementById("modal-msg-btn").onclick = () => {
+        closeModal();
+        appendLogMessage(`Conversation with ${targetUserId}`);
+      };
+
+      modal.style.display = "block";
     }
 
-    sendBtn.addEventListener('click', sendFirebaseMessage);
-    messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendFirebaseMessage(); });
-
-    function escapeHtml(text) {
-      const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-      return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    function closeModal() {
+      document.getElementById("user-modal").style.display = "none";
     }
+
+    function renderUserList() {
+      const list = document.getElementById("user-list");
+      list.innerHTML = "";
+      
+      Object.keys(usersData).forEach(uId => {
+        if (uId === currentUser) return;
+        const u = usersData[uId];
+        const card = document.createElement("div");
+        card.className = "user-card";
+        card.onclick = () => openUserModal(uId);
+
+        const statusText = u.status === 'online' ? 'Online' : getFormattedLastSeen(u.lastSeen);
+        card.innerHTML = `
+          <div>
+            <strong>${uId}</strong> ${friendsSet.has(uId) ? '🤝' : ''}
+            <div class="status-subtext">${statusText}</div>
+          </div>
+          <div>
+            <span class="status-dot ${u.status === 'online' ? 'online' : 'offline'}"></span>
+            <button class="btn btn-secondary" onclick="event.stopPropagation(); startCall('${uId}', true)">📞</button>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    // Start App
+    initApp();
   </script>
 </body>
 </html>
