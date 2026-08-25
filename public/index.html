@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat4Now - WebRTC & Messenger Call</title>
+  <title>Chat4Now - Messenger Call & WebRTC</title>
   <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
@@ -107,29 +107,48 @@
       });
     }
 
-    // INITIALIZE APP WITH ENV VARS FROM BACKEND
     async function initApp() {
       try {
         const res = await fetch('/api/message?action=config');
         const config = await res.json();
 
-        pusher = new Pusher(config.key, { cluster: config.cluster });
-        globalChannel = pusher.subscribe("chat-channel");
-        userChannel = pusher.subscribe(`user-${currentUser}`);
+        pusher = new Pusher(config.key, {
+          cluster: config.cluster,
+          authEndpoint: '/api/message?action=auth',
+          auth: { params: { username: currentUser } }
+        });
 
+        // Presence channel - Automatic online user tracking
+        globalChannel = pusher.subscribe("presence-chat");
+
+        globalChannel.bind("pusher:subscription_succeeded", (members) => {
+          members.each((member) => {
+            if (member.id !== currentUser) {
+              usersData[member.id] = { status: 'online' };
+            }
+          });
+          renderUserList();
+        });
+
+        globalChannel.bind("pusher:member_added", (member) => {
+          usersData[member.id] = { status: 'online' };
+          renderUserList();
+        });
+
+        globalChannel.bind("pusher:member_removed", (member) => {
+          usersData[member.id] = { status: 'offline', lastSeen: Date.now() };
+          renderUserList();
+        });
+
+        userChannel = pusher.subscribe(`private-user-${currentUser}`);
         setupPusherListeners();
-        sendApiRequest({ action: 'user-status', user: currentUser, status: 'online' });
+
       } catch (err) {
-        console.error("Failed to load environment configuration:", err);
+        console.error("Config load error:", err);
       }
     }
 
     function setupPusherListeners() {
-      globalChannel.bind("status-change", (data) => {
-        usersData[data.userId] = { status: data.status, lastSeen: data.lastSeen };
-        renderUserList();
-      });
-
       userChannel.bind("incoming-call", async (data) => {
         activeCallTarget = data.fromUserId;
         ringtone.play();
