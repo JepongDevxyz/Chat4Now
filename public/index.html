@@ -128,11 +128,107 @@
       100% { transform: scale(1); }
     }
 
+    /* Floating Chat Head */
+    #chat-head {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 55px;
+      height: 55px;
+      background: #00a884;
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      color: #111b21;
+      font-weight: bold;
+      font-size: 22px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      cursor: pointer;
+      z-index: 999;
+      user-select: none;
+      touch-action: none;
+    }
+    #chat-head-badge {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      background: #e53935;
+      color: white;
+      border-radius: 50%;
+      padding: 2px 6px;
+      font-size: 11px;
+      display: none;
+    }
+
+    /* Incoming Call Modal Alert */
+    #incoming-call-modal {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100dvh;
+      background: rgba(11, 20, 26, 0.95);
+      z-index: 10000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      text-align: center;
+    }
+    .caller-avatar {
+      width: 90px; height: 90px;
+      border-radius: 50%;
+      background: #00a884;
+      color: #111b21;
+      font-size: 36px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px rgba(0, 168, 132, 0.5);
+      animation: pulse 1.5s infinite;
+    }
+    .call-actions {
+      display: flex;
+      gap: 30px;
+      margin-top: 20px;
+    }
+    .btn-call-action {
+      width: 65px; height: 65px;
+      border-radius: 50%;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-accept-call { background: #25d366; color: white; }
+    .btn-decline-call { background: #e53935; color: white; }
+
     #call-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #111b21; z-index: 100; display: none; flex-direction: column; }
     #jitsi-container { width: 100%; height: calc(100% - 50px); }
   </style>
 </head>
 <body>
+
+  <!-- Floating Messenger Chat Head -->
+  <div id="chat-head" title="Open Active Chat">
+    <span id="chat-head-initial">💬</span>
+    <div id="chat-head-badge">0</div>
+  </div>
+
+  <!-- Incoming Call Modal -->
+  <div id="incoming-call-modal">
+    <div class="caller-avatar" id="incoming-caller-initial">?</div>
+    <div>
+      <h2 id="incoming-caller-name" style="font-size: 24px; margin-bottom: 6px;">Incoming Call</h2>
+      <p style="color: #8696a0;" id="incoming-call-type">Incoming video call...</p>
+    </div>
+    <div class="call-actions">
+      <button class="btn-call-action btn-decline-call" id="decline-call-btn" title="Decline">✕</button>
+      <button class="btn-call-action btn-accept-call" id="accept-call-btn" title="Accept">📞</button>
+    </div>
+  </div>
 
   <!-- Login Card -->
   <div class="login-card" id="login-screen">
@@ -257,6 +353,8 @@
     let myFriendsList = [];
     let myRequestsList = [];
     let jitsiApi = null;
+    let unreadCount = 0;
+    let activeCallData = null;
 
     let mediaRecorder = null;
     let audioChunks = [];
@@ -278,6 +376,8 @@
     const fileUploadInput = document.getElementById('file-upload-input');
     const selectedFileName = document.getElementById('selected-file-name');
     const recordAudioBtn = document.getElementById('record-audio-btn');
+    const chatHead = document.getElementById('chat-head');
+    const chatHeadBadge = document.getElementById('chat-head-badge');
 
     enterBtn.addEventListener('click', async () => {
       const name = usernameInput.value.trim();
@@ -287,6 +387,11 @@
       document.getElementById('my-name-display').textContent = myName;
       document.getElementById('user-avatar').textContent = myName.charAt(0).toUpperCase();
 
+      // Humingi ng permission para sa Browser Notifications
+      if ("Notification" in window && Notification.permission !== "granted") {
+        Notification.requestPermission();
+      }
+
       await setUserOnline();
 
       loginScreen.style.display = "none";
@@ -295,6 +400,7 @@
       startPingMeasurement();
       listenMyUserData();
       listenAllUsersStatus();
+      listenIncomingCalls();
       keepOnlineHeartbeat();
     });
 
@@ -334,8 +440,68 @@
         document.getElementById('req-count').textContent = myRequestsList.length ? `(${myRequestsList.length})` : '';
         renderFriendsList();
         renderRequestsList();
+        listenAllChatsMessages();
       });
     }
+
+    // Global listener para sa incoming messages mula sa lahat ng friends (para sa notifications & chat head)
+    let globalUnsubscribes = [];
+    function listenAllChatsMessages() {
+      globalUnsubscribes.forEach(unsub => unsub());
+      globalUnsubscribes = [];
+
+      myFriendsList.forEach(fName => {
+        const chatId = [myName, fName].sort().join("_");
+        const q = query(collection(db, "chats", chatId, "messages"), orderBy("createdAt", "desc"));
+        
+        let isFirstLoad = true;
+        const unsub = onSnapshot(q, (snapshot) => {
+          if (isFirstLoad) {
+            isFirstLoad = false;
+            return;
+          }
+          snapshot.docChanges().forEach((change) => {
+            if (change.type === "added") {
+              const msg = change.doc.data();
+              if (msg.sender !== myName) {
+                // May bagong mensahe galing sa kaibigan!
+                unreadCount++;
+                updateChatHeadBadge();
+
+                // Browser Notification
+                if (document.hidden && "Notification" in window && Notification.permission === "granted") {
+                  new Notification(`New message from ${msg.sender}`, {
+                    body: msg.text || "Sent an attachment",
+                    icon: "https://cdn-icons-png.flaticon.com/512/733/733585.png"
+                  });
+                }
+              }
+            }
+          });
+        });
+        globalUnsubscribes.push(unsub);
+      });
+    }
+
+    function updateChatHeadBadge() {
+      if (unreadCount > 0) {
+        chatHead.style.display = "flex";
+        chatHeadBadge.style.display = "block";
+        chatHeadBadge.textContent = unreadCount;
+      } else {
+        chatHeadBadge.style.display = "none";
+      }
+    }
+
+    // Pindutin ang Chat Head para buksan o isara ang chat interface sa mobile/desktop
+    chatHead.addEventListener('click', () => {
+      unreadCount = 0;
+      updateChatHeadBadge();
+      chatHead.style.display = "none";
+      if (activeFriend) {
+        document.getElementById('chat-area').classList.add('active');
+      }
+    });
 
     window.userStatuses = {};
     function listenAllUsersStatus() {
@@ -354,6 +520,38 @@
         }
       });
     }
+
+    // Listen for Incoming Calls
+    function listenIncomingCalls() {
+      onSnapshot(doc(db, "users", myName), (snapshot) => {
+        if (!snapshot.exists()) return;
+        const data = snapshot.data();
+        if (data.incomingCall && data.incomingCall.active) {
+          activeCallData = data.incomingCall;
+          document.getElementById('incoming-caller-name').textContent = activeCallData.caller;
+          document.getElementById('incoming-caller-initial').textContent = activeCallData.caller.charAt(0).toUpperCase();
+          document.getElementById('incoming-call-type').textContent = activeCallData.isAudioOnly ? "Incoming voice call..." : "Incoming video call...";
+          document.getElementById('incoming-call-modal').style.display = "flex";
+        }
+      });
+    }
+
+    document.getElementById('accept-call-btn').addEventListener('click', async () => {
+      document.getElementById('incoming-call-modal').style.display = 'none';
+      if (activeCallData) {
+        // I-set active friend sa caller para diretso kayo sa call room
+        openChatWindow(activeCallData.caller);
+        startCall(activeCallData.isAudioOnly, activeCallData.roomName);
+        // Clear incoming call flag
+        await setDoc(doc(db, "users", myName), { incomingCall: null }, { merge: true });
+      }
+    });
+
+    document.getElementById('decline-call-btn').addEventListener('click', async () => {
+      document.getElementById('incoming-call-modal').style.display = 'none';
+      activeCallData = null;
+      await setDoc(doc(db, "users", myName), { incomingCall: null }, { merge: true });
+    });
 
     document.getElementById('tab-chats').addEventListener('click', (e) => switchTab('chats', e.target));
     document.getElementById('tab-requests').addEventListener('click', (e) => switchTab('requests', e.target));
@@ -482,6 +680,8 @@
       activeFriendStatus.style.color = st === "online" ? "#25d366" : "#8696a0";
 
       document.getElementById('chat-area').classList.add('active');
+      chatHead.style.display = "flex";
+      document.getElementById('chat-head-initial').textContent = activeFriend.charAt(0).toUpperCase();
 
       const chatId = [myName, activeFriend].sort().join("_");
 
@@ -583,7 +783,7 @@
       }
     }
 
-    // Direct Base64 Voice Recorder
+    // Voice Recorder
     recordAudioBtn.addEventListener('click', async () => {
       if (!isRecording) {
         try {
@@ -594,7 +794,6 @@
           mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
           mediaRecorder.onstop = async () => {
             const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-            
             selectedFileName.textContent = "Sending voice...";
             const reader = new FileReader();
             reader.readAsDataURL(audioBlob);
@@ -621,7 +820,6 @@
           mediaRecorder.start();
           isRecording = true;
           recordAudioBtn.classList.add('recording');
-          recordAudioBtn.title = "Click again to Stop & Send";
         } catch (err) {
           alert("Microphone access denied or not supported.");
         }
@@ -629,11 +827,9 @@
         mediaRecorder.stop();
         isRecording = false;
         recordAudioBtn.classList.remove('recording');
-        recordAudioBtn.title = "Hold or Click to Record Voice Note";
       }
     });
 
-    // Function to close call overlay cleanly
     function closeCallScreen() {
       if (jitsiApi) {
         jitsiApi.dispose();
@@ -641,24 +837,39 @@
       }
       document.getElementById('jitsi-container').innerHTML = "";
       document.getElementById('call-overlay').style.display = 'none';
+      chatHead.style.display = activeFriend ? "flex" : "none";
     }
 
-    // Native Jitsi Direct Calls
-    function startCall(isAudioOnly) {
+    // Call Functions with Ringing Trigger
+    async function initiateCall(isAudioOnly) {
+      if (!activeFriend) return alert("Select a friend first!");
+      const roomName = `Chat4Now_Direct_Call_${[myName, activeFriend].sort().join("_")}`;
+      
+      // I-trigger ang incoming call notification sa target user
+      await setDoc(doc(db, "users", activeFriend), {
+        incomingCall: {
+          active: true,
+          caller: myName,
+          isAudioOnly: isAudioOnly,
+          roomName: roomName
+        }
+      }, { merge: true });
+
+      startCall(isAudioOnly, roomName);
+    }
+
+    function startCall(isAudioOnly, roomName) {
       document.getElementById('call-overlay').style.display = 'flex';
       document.getElementById('call-type-title').textContent = isAudioOnly ? "📞 Voice Call" : "📹 Video Call";
+      chatHead.style.display = "none";
       
-      const roomName = `Chat4Now_Direct_Call_${[myName, activeFriend].sort().join("_")}`;
       const domain = "meet.jit.si";
-      
       const options = {
         roomName: roomName,
         width: '100%',
         height: '100%',
         parentNode: document.getElementById('jitsi-container'),
-        userInfo: {
-          displayName: myName
-        },
+        userInfo: { displayName: myName },
         configOverwrite: {
           startWithVideoMuted: isAudioOnly,
           startWithAudioMuted: false,
@@ -682,14 +893,13 @@
       if (jitsiApi) jitsiApi.dispose();
       jitsiApi = new JitsiMeetExternalAPI(domain, options);
 
-      // Auto-close overlay kapag natapos o umalis na sa call
       jitsiApi.addListener('videoConferenceLeft', () => {
         closeCallScreen();
       });
     }
 
-    document.getElementById('start-voice-call-btn').addEventListener('click', () => startCall(true));
-    document.getElementById('start-video-call-btn').addEventListener('click', () => startCall(false));
+    document.getElementById('start-voice-call-btn').addEventListener('click', () => initiateCall(true));
+    document.getElementById('start-video-call-btn').addEventListener('click', () => initiateCall(false));
 
     document.getElementById('end-call-btn').addEventListener('click', () => {
       if (jitsiApi) {
