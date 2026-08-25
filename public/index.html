@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Chat4Now Messenger - Call Ring & Notification Fixed</title>
+  <title>Chat4Now Messenger - Enhanced Calling</title>
   <style>
     :root {
       --bg-primary: #0f172a;
@@ -250,6 +250,7 @@
     .message-bubble { max-width: 75%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.5; word-wrap: break-word; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     .msg-incoming { background: var(--bg-secondary); align-self: flex-start; color: var(--text-main); border-bottom-left-radius: 4px; border: 1px solid var(--border-color); }
     .msg-outgoing { background: #059669; align-self: flex-end; color: #fff; border-bottom-right-radius: 4px; }
+    .msg-system { background: rgba(148, 163, 184, 0.15); align-self: center; color: var(--text-muted); font-size: 12px; border-radius: 8px; text-align: center; border: 1px solid var(--border-color); max-width: 90%; }
     .msg-sender { font-size: 11px; font-weight: 700; color: #34d399; margin-bottom: 3px; }
 
     .chat-footer { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(10px); padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--border-color); flex-shrink: 0; width: 100%; }
@@ -560,6 +561,8 @@
     let unsubscribeCallSignal = null;
     let incomingCallData = null;
     let audioRingInterval = null;
+    let callStartTime = null;
+    let callConnected = false;
 
     const servers = {
       iceServers: [
@@ -926,7 +929,6 @@
       document.getElementById('chat-area').classList.add('active');
       document.getElementById('sidebar').classList.add('hidden-mobile');
       
-      // Check friend's live status
       const friendSnap = await getDoc(doc(db, "users", friendName));
       if (friendSnap.exists()) {
         const data = friendSnap.data();
@@ -955,18 +957,24 @@
         box.innerHTML = "";
         snapshot.forEach((docSnap) => {
           const msg = docSnap.data();
-          const isMe = msg.sender === myName;
           const div = document.createElement('div');
-          div.className = `message-bubble ${isMe ? 'msg-outgoing' : 'msg-incoming'}`;
-          let contentHtml = "";
-          if (msg.type === 'image') {
-            contentHtml = `<img src="${msg.fileUrl}" style="max-width: 100%; border-radius: 8px; margin-top: 4px;" />`;
-          } else if (msg.type === 'file') {
-            contentHtml = `<a href="${msg.fileUrl}" target="_blank" style="color: inherit; text-decoration: underline; display: flex; align-items: center; gap: 6px;">📁 ${msg.fileName || 'Download File'}</a>`;
+          
+          if (msg.type === 'system') {
+            div.className = 'message-bubble msg-system';
+            div.innerHTML = `<div>${escapeHtml(msg.text)}</div>`;
           } else {
-            contentHtml = `<div>${escapeHtml(msg.text)}</div>`;
+            const isMe = msg.sender === myName;
+            div.className = `message-bubble ${isMe ? 'msg-outgoing' : 'msg-incoming'}`;
+            let contentHtml = "";
+            if (msg.type === 'image') {
+              contentHtml = `<img src="${msg.fileUrl}" style="max-width: 100%; border-radius: 8px; margin-top: 4px;" />`;
+            } else if (msg.type === 'file') {
+              contentHtml = `<a href="${msg.fileUrl}" target="_blank" style="color: inherit; text-decoration: underline; display: flex; align-items: center; gap: 6px;">📁 ${msg.fileName || 'Download File'}</a>`;
+            } else {
+              contentHtml = `<div>${escapeHtml(msg.text)}</div>`;
+            }
+            div.innerHTML = `${!isMe ? `<div class="msg-sender">${msg.sender}</div>` : ''}${contentHtml}`;
           }
-          div.innerHTML = `${!isMe ? `<div class="msg-sender">${msg.sender}</div>` : ''}${contentHtml}`;
           box.appendChild(div);
         });
         box.scrollTop = box.scrollHeight;
@@ -1051,7 +1059,21 @@
     sendMsgBtn.addEventListener('click', sendCurrentMessage);
     messageTextInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendCurrentMessage(); });
 
-    // ================= WEB-RTC CALL FUNCTIONS (WITH RING & NOTIFICATION MODAL) =================
+    // Helper to log system message into chat
+    async function logSystemMessage(targetFriend, messageText) {
+      if (!targetFriend) return;
+      try {
+        const roomId = getChatRoomId(myName, targetFriend);
+        await addDoc(collection(db, "chats", roomId, "messages"), {
+          sender: "system",
+          text: messageText,
+          type: "system",
+          timestamp: serverTimestamp()
+        });
+      } catch(e) {}
+    }
+
+    // ================= WEB-RTC CALL FUNCTIONS =================
     async function startWebRTC(isVideo) {
       if (!activeFriend) return;
       if (!myFriendsList.includes(activeFriend)) {
@@ -1059,7 +1081,6 @@
         return;
       }
 
-      // Check if friend is online before calling
       const friendSnap = await getDoc(doc(db, "users", activeFriend));
       if (!friendSnap.exists()) {
         showToast(`${activeFriend} is offline.`);
@@ -1073,7 +1094,8 @@
       }
 
       document.getElementById('call-overlay').style.display = "flex";
-      playRingtone(true); // Play outgoing ring tone
+      playRingtone(true); 
+      callConnected = false;
       
       try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true });
@@ -1091,7 +1113,9 @@
       document.getElementById('remote-video').srcObject = remoteStream;
 
       peerConnection.ontrack = (event) => {
-        stopRingtone(); // Stop ringing when connected
+        stopRingtone();
+        callConnected = true;
+        callStartTime = Date.now();
         event.streams[0].getTracks().forEach(track => {
           remoteStream.addTrack(track);
         });
@@ -1126,6 +1150,10 @@
         }
         if (data && data.status === "declined") {
           showToast("Call was declined.");
+          logSystemMessage(activeFriend, `Call declined by ${activeFriend}`);
+          closeCallOverlay();
+        }
+        if (data && data.status === "ended") {
           closeCallOverlay();
         }
       });
@@ -1146,16 +1174,13 @@
         if (data && data.offer && data.caller && !peerConnection) {
           incomingCallData = data;
           
-          // Display Incoming Call Modal Notification Popup
           document.getElementById('incoming-caller-name').textContent = data.caller;
           document.getElementById('incoming-avatar-text').textContent = data.caller.charAt(0).toUpperCase();
           document.getElementById('incoming-call-type').textContent = data.isVideo ? "Incoming Video Call..." : "Incoming Voice Call...";
           document.getElementById('incoming-call-modal').style.display = "flex";
           
-          // Play Incoming Ringtone
           playRingtone(false);
         } else if (!data) {
-          // Hide incoming call modal if cancelled
           document.getElementById('incoming-call-modal').style.display = "none";
           stopRingtone();
         }
@@ -1168,7 +1193,14 @@
       if (!incomingCallData) return;
 
       const data = incomingCallData;
+      // Auto open chat window with caller if not opened yet
+      if (activeFriend !== data.caller) {
+        await openChatWith(data.caller);
+      }
+
       document.getElementById('call-overlay').style.display = "flex";
+      callConnected = true;
+      callStartTime = Date.now();
       
       try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: data.isVideo, audio: true });
@@ -1220,14 +1252,34 @@
       document.getElementById('incoming-call-modal').style.display = "none";
       stopRingtone();
       if (incomingCallData) {
+        const callerName = incomingCallData.caller;
+        if (activeFriend !== callerName) openChatWith(callerName);
+        logSystemMessage(callerName, `You missed a call from ${callerName}`);
+        
         await updateDoc(doc(db, "calls", myName), { status: "declined" }).catch(() => {});
         setTimeout(() => deleteDoc(doc(db, "calls", myName)).catch(()=>{}), 1000);
       }
       incomingCallData = null;
     });
 
-    function closeCallOverlay() {
+    async function closeCallOverlay() {
       stopRingtone();
+      
+      let friendToLog = activeFriend;
+      if (!friendToLog && incomingCallData) friendToLog = incomingCallData.caller;
+
+      if (friendToLog) {
+        if (!callConnected) {
+          logSystemMessage(friendToLog, `You missed a call from ${friendToLog}`);
+        } else if (callStartTime) {
+          const durationSec = Math.floor((Date.now() - callStartTime) / 1000);
+          const mins = Math.floor(durationSec / 60);
+          const secs = durationSec % 60;
+          const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+          logSystemMessage(friendToLog, `Call ended (Duration: ${timeStr})`);
+        }
+      }
+
       if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
       }
@@ -1238,13 +1290,25 @@
       if (unsubscribeCallSignal) {
         unsubscribeCallSignal();
       }
+
       deleteDoc(doc(db, "calls", myName)).catch(() => {});
-      if (activeFriend) deleteDoc(doc(db, "calls", activeFriend)).catch(() => {});
+      if (activeFriend) {
+        updateDoc(doc(db, "calls", activeFriend), { status: "ended" }).catch(() => {});
+        setTimeout(() => deleteDoc(doc(db, "calls", activeFriend)).catch(()=>{}), 1000);
+      }
 
       document.getElementById('call-overlay').style.display = "none";
       document.getElementById('incoming-call-modal').style.display = "none";
       document.getElementById('remote-video').srcObject = null;
       document.getElementById('local-video').srcObject = null;
+      callConnected = false;
+      callStartTime = null;
+      incomingCallData = null;
+
+      // Kusang babalik sa chat window (naka-open na active chat)
+      if (friendToLog && activeFriend !== friendToLog) {
+        openChatWith(friendToLog);
+      }
     }
 
     document.getElementById('start-voice-call-btn').addEventListener('click', () => startWebRTC(false));
