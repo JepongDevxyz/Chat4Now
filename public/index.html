@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Chat4Now Messenger - WebRTC & Friends Enhanced</title>
+  <title>Chat4Now Messenger - WebRTC & Messenger UI</title>
   <style>
     :root {
       --bg-primary: #0f172a;
@@ -261,49 +261,101 @@
     .btn-send { padding: 12px 20px; border-radius: 12px; border: none; background: var(--accent-gradient); color: #0f172a; font-weight: 700; cursor: pointer; flex-shrink: 0; box-shadow: 0 4px 10px rgba(16,185,129,0.2); }
     .icon-btn { background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; flex-shrink: 0; }
 
-    /* WebRTC Call Overlay Screen */
+    /* ================= MESSENGER STYLE VIDEO CALL OVERLAY ================= */
     #call-overlay {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
-      background: #0b0f19;
+      background: #000;
       z-index: 100;
       display: none;
       flex-direction: column;
+      user-select: none;
     }
+
+    /* Top Floating Header */
+    .call-top-bar {
+      position: absolute;
+      top: 0; left: 0; width: 100%;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 25;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%);
+    }
+
+    .call-top-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #fff;
+    }
+
+    .call-top-left button {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .caller-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .call-top-right {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .call-top-btn {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 22px;
+      cursor: pointer;
+      opacity: 0.9;
+    }
+
+    /* Video Canvas Area */
     .call-videos-container {
       flex: 1;
       position: relative;
-      background: #000;
+      background: #111;
       display: flex;
       justify-content: center;
       align-items: center;
       overflow: hidden;
     }
+
     #remote-video {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      background: #111;
     }
 
-    /* Draggable Small Video Container (Local User) */
+    /* Messenger PIP Floating Local Stream */
     .draggable-video {
       position: absolute;
-      bottom: 24px;
-      right: 24px;
-      width: 110px;
-      height: 160px;
-      border-radius: 12px;
-      border: 2px solid rgba(255,255,255,0.2);
+      top: 70px;
+      right: 16px;
+      width: 125px;
+      height: 200px;
+      border-radius: 20px;
       background: #222;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-      z-index: 10;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      z-index: 20;
       overflow: hidden;
       touch-action: none;
       cursor: grab;
-      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                  height 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                  border-radius 0.3s ease;
+      border: 1px solid rgba(255,255,255,0.15);
     }
     .draggable-video:active { cursor: grabbing; }
 
@@ -312,75 +364,92 @@
       height: 100%;
       object-fit: cover;
       pointer-events: none;
+      transform: scaleX(-1);
+    }
+    #local-video.no-mirror {
+      transform: scaleX(1);
     }
 
-    /* Minimize Button for Local Video */
-    .minimize-btn {
+    /* Filter / Effect Icon inside PIP */
+    .pip-effect-btn {
       position: absolute;
-      top: 6px;
-      right: 6px;
-      z-index: 11;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(4px);
-      color: white;
-      border: none;
-      border-radius: 50%;
-      width: 24px;
-      height: 24px;
-      font-size: 14px;
-      line-height: 1;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.2s ease;
-    }
-    .minimize-btn:hover { background: rgba(0, 0, 0, 0.85); }
-
-    /* Minimized State */
-    .draggable-video.minimized {
-      width: 50px !important;
-      height: 50px !important;
-      border-radius: 25px;
-    }
-    .draggable-video.minimized .minimize-btn {
-      top: 50%;
+      bottom: 14px;
       left: 50%;
-      transform: translate(-50%, -50%);
-      right: auto;
-      background: transparent;
-      width: 100%;
-      height: 100%;
-      font-size: 18px;
+      transform: translateX(-50%);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(4px);
+      border: none;
+      color: #fff;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 22;
     }
 
-    .call-footer-bar {
-      padding: 20px;
-      background: rgba(15, 23, 42, 0.9);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 20px;
-      border-top: 1px solid var(--border-color);
-      z-index: 10;
-    }
-    .call-control-btn {
-      width: 50px;
-      height: 50px;
+    /* Floating Status Indicator Overlay (e.g. Mic Muted) */
+    .status-indicator-badge {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
-      border: none;
-      background: #334155;
+      background: rgba(30, 41, 59, 0.8);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
       color: #fff;
       font-size: 20px;
-      cursor: pointer;
+      z-index: 15;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* Messenger Round Bottom Floating Controls */
+    .call-footer-bar {
+      position: absolute;
+      bottom: 0; left: 0; width: 100%;
+      padding: 24px 20px 36px 20px;
+      background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
+      display: flex;
+      justify-content: space-evenly;
+      align-items: center;
+      z-index: 25;
+    }
+
+    .msg-call-btn {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      color: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      transition: transform 0.1s;
+      cursor: pointer;
+      transition: all 0.2s ease;
     }
-    .call-control-btn:active { transform: scale(0.95); }
-    .call-control-btn.hangup { background: var(--danger); }
+    .msg-call-btn:active { transform: scale(0.92); }
+    .msg-call-btn svg { width: 26px; height: 26px; fill: currentColor; }
+    
+    .msg-call-btn.active-off {
+      background: #ffffff;
+      color: #0f172a;
+    }
+
+    .msg-call-btn.hangup-btn {
+      background: #ef4444;
+      color: #ffffff;
+      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+    }
 
     /* Incoming Call Notification Popup Overlay */
     #incoming-call-modal {
@@ -567,21 +636,57 @@
         </div>
       </div>
 
-      <!-- WebRTC Call Overlay Screen -->
+      <!-- Messenger WebRTC Call Overlay Screen -->
       <div id="call-overlay">
+        <!-- Floating Header -->
+        <div class="call-top-bar">
+          <div class="call-top-left">
+            <button id="call-minimize-screen-btn">⤢</button>
+            <div class="caller-title" id="call-partner-title">Mahal 🫶</div>
+          </div>
+          <div class="call-top-right">
+            <button class="call-top-btn">👤<sup>+</sup></button>
+            <button class="call-top-btn">⋮</button>
+          </div>
+        </div>
+
         <div class="call-videos-container">
           <video id="remote-video" autoplay playsinline></video>
           
-          <!-- Draggable Local Video Container -->
+          <!-- Mute Status Overlay Badge -->
+          <div class="status-indicator-badge" id="remote-mute-badge">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l4.01 4.01C6.4 9.04 6 10.04 6 11h1.7c0-1.57.87-2.9 2.12-3.6l1.45 1.45C10.55 9.17 10 9.9 10 11v.17l4.28 4.28c-.37.12-.76.21-1.18.27V18h-2.2v-2.28c-2.88-.41-5.1-2.86-5.1-5.87H4c0 3.66 2.68 6.7 6.1 7.23V21h3.8v-1.65c.77-.12 1.5-.37 2.17-.73l2.66 2.65L20 19.99 4.27 3z"/></svg>
+          </div>
+
+          <!-- Draggable Local Video Container (PIP) -->
           <div id="localVideoContainer" class="draggable-video">
-            <button id="minimizeLocalVideoBtn" class="minimize-btn">−</button>
             <video id="local-video" autoplay playsinline muted></video>
+            <button class="pip-effect-btn">✨</button>
           </div>
         </div>
+
+        <!-- Messenger Round Floating Controls -->
         <div class="call-footer-bar">
-          <button class="call-control-btn" id="toggle-mic-btn" title="Mute Mic">🎤</button>
-          <button class="call-control-btn hangup" id="end-call-btn" title="End Call">📞</button>
-          <button class="call-control-btn" id="toggle-cam-btn" title="Camera">📷</button>
+          <!-- Toggle Camera -->
+          <button class="msg-call-btn" id="toggle-cam-btn" title="Toggle Camera">
+            <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+          </button>
+          <!-- Toggle Mic -->
+          <button class="msg-call-btn" id="toggle-mic-btn" title="Toggle Mic">
+            <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+          </button>
+          <!-- Media/Share Button -->
+          <button class="msg-call-btn" id="media-share-btn" title="Media & Games">
+            <svg viewBox="0 0 24 24"><path d="M4 6h16v12H4z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 9l5 3-5 3z"/></svg>
+          </button>
+          <!-- Flip Camera Button -->
+          <button class="msg-call-btn" id="flip-cam-btn" title="Flip Camera">
+            <svg viewBox="0 0 24 24"><path d="M20 4h-3.17L15 2H9L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 11.5c-2.48 0-4.5-2.02-4.5-4.5S9.52 6.5 12 6.5s4.5 2.02 4.5 4.5-2.02 4.5-4.5 4.5z"/></svg>
+          </button>
+          <!-- End Call Button -->
+          <button class="msg-call-btn hangup-btn" id="end-call-btn" title="End Call">
+            <svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>
+          </button>
         </div>
       </div>
     </div>
@@ -614,7 +719,7 @@
     let messagesUnsubscribe = null;
     let selectedFile = null;
 
-    // WebRTC Variables
+    // WebRTC & Camera State Variables
     let peerConnection = null;
     let localStream = null;
     let remoteStream = null;
@@ -623,6 +728,8 @@
     let incomingCallData = null;
     let audioRingInterval = null;
     let callStartTime = null;
+    let currentFacingMode = 'user';
+    let isCallVideoActive = true;
 
     const servers = {
       iceServers: [
@@ -651,22 +758,14 @@
     const sheetFriendBtn = document.getElementById('sheet-friend-btn');
     const sheetCancelBtn = document.getElementById('sheet-cancel-btn');
 
-    // ================= DRAGGABLE & MINIMIZABLE LOGIC =================
+    // ================= PIP DRAGGABLE LOGIC =================
     const localVideoContainer = document.getElementById('localVideoContainer');
-    const minimizeLocalVideoBtn = document.getElementById('minimizeLocalVideoBtn');
-
-    minimizeLocalVideoBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const isMinimized = localVideoContainer.classList.toggle('minimized');
-      minimizeLocalVideoBtn.innerText = isMinimized ? '+' : '−';
-    });
 
     let isDragging = false;
     let currentX, currentY, initialX, initialY;
     let xOffset = 0, yOffset = 0;
 
     function dragStart(e) {
-      if (e.target === minimizeLocalVideoBtn) return;
       if (e.type === "touchstart") {
         initialX = e.touches[0].clientX - xOffset;
         initialY = e.touches[0].clientY - yOffset;
@@ -707,7 +806,7 @@
     window.addEventListener("mouseup", dragEnd, false);
     window.addEventListener("mousemove", drag, false);
 
-    // Web Audio Synthesizer Tones (Dialing, Incoming Ring, Offline Sound)
+    // Audio Tones
     let audioCtx = null;
     function playRingtone(type = 'out') {
       try {
@@ -831,18 +930,20 @@
     }
 
     function startGuestCleanupTask() {
-      setInterval(async () => {
+      const cleanFn = async () => {
         try {
           const usersSnap = await getDocs(collection(db, "users"));
-          const oneHourAgo = Date.now() - (60 * 60 * 1000);
+          const thirtyMinsAgo = Date.now() - (30 * 60 * 1000);
           usersSnap.forEach(async (userDoc) => {
             const u = userDoc.data();
-            if (u.isGuest && u.lastSeen && u.lastSeen < oneHourAgo) {
+            if (u.isGuest && u.lastSeen && u.lastSeen < thirtyMinsAgo) {
               await deleteDoc(doc(db, "users", userDoc.id)).catch(() => {});
             }
           });
         } catch(e) {}
-      }, 300000);
+      };
+      cleanFn();
+      setInterval(cleanFn, 60000);
     }
 
     function openActionModal(username, type) {
@@ -892,7 +993,7 @@
           const userData = docSnap.data();
           const targetName = userData.name;
 
-          if (targetName === myName) return;
+          if (!targetName || targetName === myName) return;
           if (filterKeyword && !targetName.toLowerCase().includes(filterKeyword.toLowerCase())) return;
 
           usersFound = true;
@@ -995,66 +1096,82 @@
       } catch (e) { console.error(e); }
     }
 
+    let friendsDataMap = new Map();
+
+    function renderFriendsAndChats() {
+      friendsListDiv.innerHTML = "";
+      chatsListDiv.innerHTML = "";
+
+      if (myFriendsList.length === 0) {
+        friendsListDiv.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 13px;">No friends added yet.<br>Tap (+) to find & add friends!</div>`;
+        chatsListDiv.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 13px;">No active chats.<br>Add friends to start chatting!</div>`;
+        return;
+      }
+
+      myFriendsList.forEach(friendName => {
+        const fData = friendsDataMap.get(friendName);
+        let friendStatusText = "○ Offline";
+        let isOnline = false;
+
+        if (fData) {
+          isOnline = fData.status === "online" && (Date.now() - (fData.lastSeen || 0) < 15000);
+          friendStatusText = isOnline ? '● Online' : formatLastSeen(fData.lastSeen);
+        }
+
+        const friendItem = document.createElement('div');
+        friendItem.className = 'list-item';
+        friendItem.innerHTML = `
+          <div class="list-item-left">
+            <div class="avatar-icon" style="width: 38px; height: 38px; font-size: 15px;">${friendName.charAt(0).toUpperCase()}</div>
+            <div style="min-width: 0; flex: 1;">
+              <strong style="font-size: 14px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${friendName}</strong>
+              <div style="font-size: 11px; color: ${isOnline ? '#34d399' : 'var(--text-muted)'};">${friendStatusText}</div>
+            </div>
+          </div>
+          <button class="btn-action" style="background: rgba(239,68,68,0.15); color: #f87171;">Unfriend</button>
+        `;
+        friendItem.addEventListener('click', () => openActionModal(friendName, 'friend'));
+        friendItem.querySelector('button').addEventListener('click', async (e) => {
+          e.stopPropagation();
+          if (confirm(`Are you sure you want to unfriend ${friendName}?`)) await removeFriend(friendName);
+        });
+        friendsListDiv.appendChild(friendItem);
+
+        const chatItem = document.createElement('div');
+        chatItem.className = 'list-item';
+        chatItem.innerHTML = `
+          <div class="list-item-left">
+            <div class="avatar-icon" style="width: 38px; height: 38px; font-size: 15px;">${friendName.charAt(0).toUpperCase()}</div>
+            <div style="min-width: 0; flex: 1;">
+              <strong style="font-size: 14px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${friendName}</strong>
+              <div style="font-size: 11px; color: ${isOnline ? '#34d399' : 'var(--text-muted)'};">${friendStatusText}</div>
+            </div>
+          </div>
+        `;
+        chatItem.addEventListener('click', () => openChatWith(friendName));
+        chatsListDiv.appendChild(chatItem);
+      });
+    }
+
     function listenMyFriends() {
       const userDocRef = doc(db, "users", myName);
       onSnapshot(userDocRef, (docSnap) => {
         if (!docSnap.exists()) return;
         const data = docSnap.data();
         myFriendsList = data.friends || [];
-        
-        friendsListDiv.innerHTML = "";
-        chatsListDiv.innerHTML = "";
-
-        if (myFriendsList.length === 0) {
-          friendsListDiv.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 13px;">No friends added yet.<br>Tap (+) to find & add friends!</div>`;
-          chatsListDiv.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 13px;">No active chats.<br>Add friends to start chatting!</div>`;
-          return;
-        }
 
         myFriendsList.forEach(friendName => {
           onSnapshot(doc(db, "users", friendName), (fSnap) => {
-            let friendStatusText = "○ Offline";
-            let isOnline = false;
             if (fSnap.exists()) {
-              const fData = fSnap.data();
-              isOnline = fData.status === "online" && (Date.now() - (fData.lastSeen || 0) < 15000);
-              friendStatusText = isOnline ? '● Online' : formatLastSeen(fData.lastSeen);
+              friendsDataMap.set(friendName, fSnap.data());
+            } else {
+              friendsDataMap.delete(friendName);
             }
-
-            const friendItem = document.createElement('div');
-            friendItem.className = 'list-item';
-            friendItem.innerHTML = `
-              <div class="list-item-left">
-                <div class="avatar-icon" style="width: 38px; height: 38px; font-size: 15px;">${friendName.charAt(0).toUpperCase()}</div>
-                <div style="min-width: 0; flex: 1;">
-                  <strong style="font-size: 14px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${friendName}</strong>
-                  <div style="font-size: 11px; color: ${isOnline ? '#34d399' : 'var(--text-muted)'};">${friendStatusText}</div>
-                </div>
-              </div>
-              <button class="btn-action" style="background: rgba(239,68,68,0.15); color: #f87171;">Unfriend</button>
-            `;
-            friendItem.addEventListener('click', () => openActionModal(friendName, 'friend'));
-            friendItem.querySelector('button').addEventListener('click', async (e) => {
-              e.stopPropagation();
-              if (confirm(`Are you sure you want to unfriend ${friendName}?`)) await removeFriend(friendName);
-            });
-            friendsListDiv.appendChild(friendItem);
-
-            const chatItem = document.createElement('div');
-            chatItem.className = 'list-item';
-            chatItem.innerHTML = `
-              <div class="list-item-left">
-                <div class="avatar-icon" style="width: 38px; height: 38px; font-size: 15px;">${friendName.charAt(0).toUpperCase()}</div>
-                <div style="min-width: 0; flex: 1;">
-                  <strong style="font-size: 14px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${friendName}</strong>
-                  <div style="font-size: 11px; color: ${isOnline ? '#34d399' : 'var(--text-muted)'};">${friendStatusText}</div>
-                </div>
-              </div>
-            `;
-            chatItem.addEventListener('click', () => openChatWith(friendName));
-            chatsListDiv.appendChild(chatItem);
+            renderFriendsAndChats();
           });
         });
+
+        renderFriendsAndChats();
       });
     }
 
@@ -1250,7 +1367,61 @@
     sendMsgBtn.addEventListener('click', sendCurrentMessage);
     messageTextInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendCurrentMessage(); });
 
-    // ================= WEB-RTC CALL FUNCTIONS =================
+    // ================= WEB-RTC VIDEO CALL CORE =================
+
+    async function getLocalMediaStream(isVideo = true, facingMode = 'user') {
+      const videoElement = document.getElementById('local-video');
+      
+      if (facingMode === 'user') {
+        videoElement.classList.remove('no-mirror');
+      } else {
+        videoElement.classList.add('no-mirror');
+      }
+
+      const constraints = {
+        audio: true,
+        video: isVideo ? { facingMode: { exact: facingMode } } : false
+      };
+
+      try {
+        return await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (err) {
+        return await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true });
+      }
+    }
+
+    async function switchCameraFacingMode() {
+      if (!localStream) return;
+      currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
+
+      const oldVideoTrack = localStream.getVideoTracks()[0];
+
+      if (oldVideoTrack) {
+        oldVideoTrack.stop();
+      }
+
+      try {
+        const newStream = await getLocalMediaStream(true, currentFacingMode);
+        const newVideoTrack = newStream.getVideoTracks()[0];
+
+        localStream.removeTrack(oldVideoTrack);
+        localStream.addTrack(newVideoTrack);
+        document.getElementById('local-video').srcObject = localStream;
+
+        if (peerConnection) {
+          const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+          if (sender) {
+            sender.replaceTrack(newVideoTrack);
+          }
+        }
+        showToast(currentFacingMode === 'user' ? "Front Camera" : "Back Camera");
+      } catch (e) {
+        showToast("Unable to switch camera.");
+      }
+    }
+
+    document.getElementById('flip-cam-btn').addEventListener('click', switchCameraFacingMode);
+
     async function startWebRTC(isVideo) {
       if (!activeFriend) return;
       if (!myFriendsList.includes(activeFriend)) {
@@ -1269,12 +1440,15 @@
         return;
       }
 
+      document.getElementById('call-partner-title').textContent = `${activeFriend} 🫶`;
       document.getElementById('call-overlay').style.display = "flex";
       playRingtone('out');
       callStartTime = Date.now();
+      isCallVideoActive = isVideo;
+      currentFacingMode = 'user';
       
       try {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true });
+        localStream = await getLocalMediaStream(isVideo, currentFacingMode);
         document.getElementById('local-video').srcObject = localStream;
       } catch (err) {
         showToast("Camera/Microphone permission denied.");
@@ -1369,11 +1543,14 @@
 
       const data = incomingCallData;
       activeFriend = data.caller;
+      document.getElementById('call-partner-title').textContent = `${activeFriend} 🫶`;
       callStartTime = Date.now();
+      isCallVideoActive = data.isVideo;
+      currentFacingMode = 'user';
       document.getElementById('call-overlay').style.display = "flex";
       
       try {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: data.isVideo, audio: true });
+        localStream = await getLocalMediaStream(data.isVideo, currentFacingMode);
         document.getElementById('local-video').srcObject = localStream;
       } catch(e) {
         showToast("Camera/Microphone permission denied.");
@@ -1472,13 +1649,23 @@
     document.getElementById('start-voice-call-btn').addEventListener('click', () => startWebRTC(false));
     document.getElementById('start-video-call-btn').addEventListener('click', () => startWebRTC(true));
     document.getElementById('end-call-btn').addEventListener('click', () => closeCallOverlay("Ended"));
+    document.getElementById('call-minimize-screen-btn').addEventListener('click', () => closeCallOverlay("Minimized"));
 
     let isMuted = false;
     document.getElementById('toggle-mic-btn').addEventListener('click', () => {
       if (!localStream) return;
       isMuted = !isMuted;
       localStream.getAudioTracks()[0].enabled = !isMuted;
-      document.getElementById('toggle-mic-btn').style.background = isMuted ? '#ef4444' : '#334155';
+      const btn = document.getElementById('toggle-mic-btn');
+      const badge = document.getElementById('remote-mute-badge');
+
+      if (isMuted) {
+        btn.classList.add('active-off');
+        badge.style.display = 'flex';
+      } else {
+        btn.classList.remove('active-off');
+        badge.style.display = 'none';
+      }
     });
 
     let isCamOff = false;
@@ -1488,7 +1675,12 @@
       const videoTrack = localStream.getVideoTracks()[0];
       if (videoTrack) {
         videoTrack.enabled = !isCamOff;
-        document.getElementById('toggle-cam-btn').style.background = isCamOff ? '#ef4444' : '#334155';
+        const btn = document.getElementById('toggle-cam-btn');
+        if (isCamOff) {
+          btn.classList.add('active-off');
+        } else {
+          btn.classList.remove('active-off');
+        }
       }
     });
 
