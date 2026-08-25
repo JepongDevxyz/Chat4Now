@@ -583,7 +583,7 @@
       }
     }
 
-    // Direct Base64 Voice Recorder (Bypasses Storage Rules)
+    // Direct Base64 Voice Recorder
     recordAudioBtn.addEventListener('click', async () => {
       if (!isRecording) {
         try {
@@ -633,12 +633,22 @@
       }
     });
 
-    // Native Jitsi Calls (Audio & Video)
+    // Function to close call overlay cleanly
+    function closeCallScreen() {
+      if (jitsiApi) {
+        jitsiApi.dispose();
+        jitsiApi = null;
+      }
+      document.getElementById('jitsi-container').innerHTML = "";
+      document.getElementById('call-overlay').style.display = 'none';
+    }
+
+    // Native Jitsi Direct Calls
     function startCall(isAudioOnly) {
       document.getElementById('call-overlay').style.display = 'flex';
       document.getElementById('call-type-title').textContent = isAudioOnly ? "📞 Voice Call" : "📹 Video Call";
       
-      const roomName = `Chat4Now_Call_${[myName, activeFriend].sort().join("_")}`;
+      const roomName = `Chat4Now_Direct_Call_${[myName, activeFriend].sort().join("_")}`;
       const domain = "meet.jit.si";
       
       const options = {
@@ -652,12 +662,30 @@
         configOverwrite: {
           startWithVideoMuted: isAudioOnly,
           startWithAudioMuted: false,
-          disableDeepLinking: true
+          prejoinPageEnabled: false,
+          disableDeepLinking: true,
+          toolbarButtons: [
+            'microphone', 'camera', 'closed-captions', 'desktop', 'fullscreen',
+            'fodeviceselection', 'hangup', 'chat', 'settings', 'raise-hand',
+            'videoquality', 'filmstrip', 'stats', 'shortcuts'
+          ]
+        },
+        interfaceConfigOverwrite: {
+          MOBILE_APP_PROMO: false,
+          PROVIDER_NAME: 'Chat4Now',
+          SHOW_JITSI_WATERMARK: false,
+          SHOW_WATERMARK_FOR_GUESTS: false,
+          HIDE_INVITE_MORE_HEADER: true
         }
       };
 
       if (jitsiApi) jitsiApi.dispose();
       jitsiApi = new JitsiMeetExternalAPI(domain, options);
+
+      // Auto-close overlay kapag natapos o umalis na sa call
+      jitsiApi.addListener('videoConferenceLeft', () => {
+        closeCallScreen();
+      });
     }
 
     document.getElementById('start-voice-call-btn').addEventListener('click', () => startCall(true));
@@ -665,11 +693,10 @@
 
     document.getElementById('end-call-btn').addEventListener('click', () => {
       if (jitsiApi) {
-        jitsiApi.dispose();
-        jitsiApi = null;
+        jitsiApi.executeCommand('hangup');
+      } else {
+        closeCallScreen();
       }
-      document.getElementById('jitsi-container').innerHTML = "";
-      document.getElementById('call-overlay').style.display = 'none';
     });
   </script>
 </body>
