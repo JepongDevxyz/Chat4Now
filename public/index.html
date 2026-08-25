@@ -285,19 +285,75 @@
       object-fit: cover;
       background: #111;
     }
-    #local-video {
+
+    /* Draggable Small Video Container (Local User) */
+    .draggable-video {
       position: absolute;
       bottom: 24px;
       right: 24px;
       width: 110px;
       height: 160px;
-      object-fit: cover;
       border-radius: 12px;
       border: 2px solid rgba(255,255,255,0.2);
       background: #222;
       box-shadow: 0 10px 25px rgba(0,0,0,0.5);
       z-index: 10;
+      overflow: hidden;
+      touch-action: none;
+      cursor: grab;
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                  height 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                  border-radius 0.3s ease;
     }
+    .draggable-video:active { cursor: grabbing; }
+
+    #local-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+    }
+
+    /* Minimize Button for Local Video */
+    .minimize-btn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      z-index: 11;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s ease;
+    }
+    .minimize-btn:hover { background: rgba(0, 0, 0, 0.85); }
+
+    /* Minimized State */
+    .draggable-video.minimized {
+      width: 50px !important;
+      height: 50px !important;
+      border-radius: 25px;
+    }
+    .draggable-video.minimized .minimize-btn {
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      right: auto;
+      background: transparent;
+      width: 100%;
+      height: 100%;
+      font-size: 18px;
+    }
+
     .call-footer-bar {
       padding: 20px;
       background: rgba(15, 23, 42, 0.9);
@@ -515,7 +571,12 @@
       <div id="call-overlay">
         <div class="call-videos-container">
           <video id="remote-video" autoplay playsinline></video>
-          <video id="local-video" autoplay playsinline muted></video>
+          
+          <!-- Draggable Local Video Container -->
+          <div id="localVideoContainer" class="draggable-video">
+            <button id="minimizeLocalVideoBtn" class="minimize-btn">−</button>
+            <video id="local-video" autoplay playsinline muted></video>
+          </div>
         </div>
         <div class="call-footer-bar">
           <button class="call-control-btn" id="toggle-mic-btn" title="Mute Mic">🎤</button>
@@ -590,6 +651,62 @@
     const sheetFriendBtn = document.getElementById('sheet-friend-btn');
     const sheetCancelBtn = document.getElementById('sheet-cancel-btn');
 
+    // ================= DRAGGABLE & MINIMIZABLE LOGIC =================
+    const localVideoContainer = document.getElementById('localVideoContainer');
+    const minimizeLocalVideoBtn = document.getElementById('minimizeLocalVideoBtn');
+
+    minimizeLocalVideoBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isMinimized = localVideoContainer.classList.toggle('minimized');
+      minimizeLocalVideoBtn.innerText = isMinimized ? '+' : '−';
+    });
+
+    let isDragging = false;
+    let currentX, currentY, initialX, initialY;
+    let xOffset = 0, yOffset = 0;
+
+    function dragStart(e) {
+      if (e.target === minimizeLocalVideoBtn) return;
+      if (e.type === "touchstart") {
+        initialX = e.touches[0].clientX - xOffset;
+        initialY = e.touches[0].clientY - yOffset;
+      } else {
+        initialX = e.clientX - xOffset;
+        initialY = e.clientY - yOffset;
+      }
+      isDragging = true;
+    }
+
+    function drag(e) {
+      if (!isDragging) return;
+      e.preventDefault();
+      if (e.type === "touchmove") {
+        currentX = e.touches[0].clientX - initialX;
+        currentY = e.touches[0].clientY - initialY;
+      } else {
+        currentX = e.clientX - initialX;
+        currentY = e.clientY - initialY;
+      }
+      xOffset = currentX;
+      yOffset = currentY;
+      setTranslate(currentX, currentY, localVideoContainer);
+    }
+
+    function dragEnd() {
+      isDragging = false;
+    }
+
+    function setTranslate(xPos, yPos, el) {
+      el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
+    }
+
+    localVideoContainer.addEventListener("touchstart", dragStart, { passive: false });
+    localVideoContainer.addEventListener("touchend", dragEnd, false);
+    localVideoContainer.addEventListener("touchmove", drag, { passive: false });
+    localVideoContainer.addEventListener("mousedown", dragStart, false);
+    window.addEventListener("mouseup", dragEnd, false);
+    window.addEventListener("mousemove", drag, false);
+
     // Web Audio Synthesizer Tones (Dialing, Incoming Ring, Offline Sound)
     let audioCtx = null;
     function playRingtone(type = 'out') {
@@ -604,19 +721,19 @@
           const gain = audioCtx.createGain();
           osc.type = 'sine';
 
-          if (type === 'out') { // Messenger Dial Ring Out Tone
+          if (type === 'out') { 
             osc.frequency.setValueAtTime(440, audioCtx.currentTime);
             gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
             osc.connect(gain); gain.connect(audioCtx.destination);
             osc.start(); osc.stop(audioCtx.currentTime + 1.2);
-          } else if (type === 'in') { // Receiver Call Ring Tone
-            osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5 Tone
+          } else if (type === 'in') { 
+            osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
             gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
             osc.connect(gain); gain.connect(audioCtx.destination);
             osc.start(); osc.stop(audioCtx.currentTime + 0.8);
-          } else if (type === 'offline') { // Offline Sound Tone (Fast Double Beep)
+          } else if (type === 'offline') { 
             osc.frequency.setValueAtTime(300, audioCtx.currentTime);
             gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
@@ -713,7 +830,6 @@
       }, 10000);
     }
 
-    // Inactive Guest Cleanup Task (Deletes guest users inactive for > 1 hour)
     function startGuestCleanupTask() {
       setInterval(async () => {
         try {
@@ -726,7 +842,7 @@
             }
           });
         } catch(e) {}
-      }, 300000); // Checks every 5 minutes
+      }, 300000);
     }
 
     function openActionModal(username, type) {
@@ -896,7 +1012,6 @@
         }
 
         myFriendsList.forEach(friendName => {
-          // Listen to status of each friend
           onSnapshot(doc(db, "users", friendName), (fSnap) => {
             let friendStatusText = "○ Offline";
             let isOnline = false;
@@ -992,7 +1107,6 @@
       document.getElementById('chat-area').classList.add('active');
       document.getElementById('sidebar').classList.add('hidden-mobile');
       
-      // Realtime Status Listener for Active Friend Header
       onSnapshot(doc(db, "users", friendName), (friendSnap) => {
         if (friendSnap.exists()) {
           const data = friendSnap.data();
@@ -1136,7 +1250,7 @@
     sendMsgBtn.addEventListener('click', sendCurrentMessage);
     messageTextInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendCurrentMessage(); });
 
-    // ================= WEB-RTC CALL FUNCTIONS (WITH RING, OFFLINE TONE & LOGS) =================
+    // ================= WEB-RTC CALL FUNCTIONS =================
     async function startWebRTC(isVideo) {
       if (!activeFriend) return;
       if (!myFriendsList.includes(activeFriend)) {
@@ -1144,13 +1258,11 @@
         return;
       }
 
-      // 1. Check if Target User is Online
       const friendSnap = await getDoc(doc(db, "users", activeFriend));
       const friendData = friendSnap.exists() ? friendSnap.data() : null;
       const isOnline = friendData && friendData.status === "online" && (Date.now() - (friendData.lastSeen || 0) < 15000);
 
       if (!isOnline) {
-        // Play Offline Tone + Log to Chat
         playRingtone('offline');
         showToast(`${activeFriend} is currently offline.`);
         await sendSystemLogMessage(activeFriend, `📞 You tried to call ${activeFriend}, but user is offline.`);
@@ -1158,7 +1270,7 @@
       }
 
       document.getElementById('call-overlay').style.display = "flex";
-      playRingtone('out'); // Play Outgoing Calling Ring Tone
+      playRingtone('out');
       callStartTime = Date.now();
       
       try {
@@ -1177,7 +1289,7 @@
       document.getElementById('remote-video').srcObject = remoteStream;
 
       peerConnection.ontrack = (event) => {
-        stopRingtone(); // Stop dial sound once connected
+        stopRingtone();
         event.streams[0].getTracks().forEach(track => {
           remoteStream.addTrack(track);
         });
@@ -1215,7 +1327,6 @@
           closeCallOverlay("Declined");
         }
         if (!data && peerConnection) {
-          // Caller ended remotely
           closeCallOverlay("Ended");
         }
       });
@@ -1236,16 +1347,13 @@
         if (data && data.offer && data.caller && !peerConnection) {
           incomingCallData = data;
           
-          // Display Incoming Call Notification Modal Popup
           document.getElementById('incoming-caller-name').textContent = data.caller;
           document.getElementById('incoming-avatar-text').textContent = data.caller.charAt(0).toUpperCase();
           document.getElementById('incoming-call-type').textContent = data.isVideo ? "Incoming Video Call..." : "Incoming Voice Call...";
           document.getElementById('incoming-call-modal').style.display = "flex";
           
-          // Play Incoming Receiver Ringtone
           playRingtone('in');
         } else if (!data && incomingCallData && !peerConnection) {
-          // Caller cancelled call before accept
           document.getElementById('incoming-call-modal').style.display = "none";
           stopRingtone();
           await sendSystemLogMessage(incomingCallData.caller, `📞 You missed a call from ${incomingCallData.caller}`);
@@ -1348,7 +1456,6 @@
       document.getElementById('remote-video').srcObject = null;
       document.getElementById('local-video').srcObject = null;
 
-      // Auto-Log Call Summary Message to Chat Room
       if (activeFriend) {
         let logMsg = `📞 Call ${reason.toLowerCase()}`;
         if (callDurationSec > 0 && reason !== "Declined" && reason !== "Cancelled") {
@@ -1357,7 +1464,6 @@
         await sendSystemLogMessage(activeFriend, logMsg);
       }
 
-      // Kusa at kumpletong pagbalik sa Chat View Window
       if (activeFriend) {
         openChatWith(activeFriend);
       }
