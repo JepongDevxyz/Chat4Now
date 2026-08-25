@@ -107,6 +107,7 @@
   <!-- Firebase Modular SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
     import { 
       getAuth, 
       GoogleAuthProvider, 
@@ -116,18 +117,20 @@
       signOut 
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-    // Palitan ito ng tunay mong Firebase Config
+    // Ang iyong Firebase Configuration
     const firebaseConfig = {
-      apiKey: "YOUR_FIREBASE_API_KEY",
+      apiKey: "AIzaSyC3mJ-9-hv85jZiAsGi_kuuZjj_mmjAUmQ",
       authDomain: "chat4now-orforever.firebaseapp.com",
       projectId: "chat4now-orforever",
-      storageBucket: "chat4now-orforever.appspot.com",
+      storageBucket: "chat4now-orforever.firebasestorage.app",
       messagingSenderId: "1027816238177",
-      appId: "YOUR_FIREBASE_APP_ID"
+      appId: "1:1027816238177:web:9b3794c53f4d194cbc4e20",
+      measurementId: "G-KCH61T1TYP"
     };
 
-    // Initialize Firebase
+    // Initialize Firebase & Analytics
     const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
 
@@ -139,16 +142,16 @@
     const userEmail = document.getElementById('user-email');
     const userPhoto = document.getElementById('user-photo');
 
-    // 1. Google Sign-In gamit ang Redirect (Panlaban sa Mobile Pop-up Blocks)
+    // 1. Google Sign-In gamit ang Redirect
     loginBtn.addEventListener('click', () => {
       signInWithRedirect(auth, provider);
     });
 
-    // 2. I-handle ang resulta pagkatapos mag-redirect pabalik sa site
+    // 2. Kunin ang resulta pagka-redirect
     getRedirectResult(auth)
       .then((result) => {
         if (result) {
-          console.log("Successfully logged in:", result.user);
+          console.log("Logged in successfully:", result.user);
         }
       })
       .catch((error) => {
@@ -156,7 +159,7 @@
         alert("Login error: " + error.message);
       });
 
-    // 3. I-monitor ang Auth State Change
+    // 3. Subaybayan ang state ng User
     onAuthStateChanged(auth, (user) => {
       if (user) {
         authSection.style.display = 'none';
@@ -170,7 +173,7 @@
       }
     });
 
-    // 4. Logout Function
+    // 4. Logout Handler
     logoutBtn.addEventListener('click', () => {
       signOut(auth).catch((error) => console.error("Logout Error:", error));
     });
