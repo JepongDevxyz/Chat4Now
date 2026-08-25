@@ -9,6 +9,27 @@ const pusher = new Pusher({
 });
 
 module.exports = async (req, res) => {
+  // CORS setup
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  // GET request para kunin ang Pusher config mula sa env vars
+  if (req.method === 'GET' && req.query.action === 'config') {
+    return res.status(200).json({
+      key: process.env.PUSHER_KEY,
+      cluster: process.env.PUSHER_CLUSTER
+    });
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -21,12 +42,10 @@ module.exports = async (req, res) => {
 
   try {
     switch (action) {
-      // 1. CHAT MESSAGES
       case 'send-message':
         await pusher.trigger("chat-channel", "new-message", { text, user });
         return res.status(200).json({ success: true });
 
-      // 2, 8. CALL SIGNALING & RINGTONE
       case 'call-user':
         await pusher.trigger(`user-${toUserId}`, "incoming-call", {
           fromUserId,
@@ -35,7 +54,6 @@ module.exports = async (req, res) => {
         });
         return res.status(200).json({ success: true });
 
-      // WEBRTC ANSWERS & ICE CANDIDATES
       case 'answer-call':
         await pusher.trigger(`user-${toUserId}`, "call-answered", { answer });
         return res.status(200).json({ success: true });
@@ -44,15 +62,13 @@ module.exports = async (req, res) => {
         await pusher.trigger(`user-${toUserId}`, "ice-candidate", { candidate });
         return res.status(200).json({ success: true });
 
-      // 6, 7. END CALL LOG & AUTO RETURN
       case 'end-call':
         await pusher.trigger(`user-${toUserId}`, "call-ended", {
           fromUserId,
-          logType // "missed" o "ended"
+          logType
         });
         return res.status(200).json({ success: true });
 
-      // 4. FRIEND SYSTEM & GUEST CHECKS
       case 'friend-request':
         if (isGuest) {
           return res.status(403).json({ error: 'Guests cannot send friend requests.' });
@@ -64,11 +80,10 @@ module.exports = async (req, res) => {
         await pusher.trigger(`user-${toUserId}`, "friend-updated", { fromUserId, status: 'unfriended' });
         return res.status(200).json({ success: true });
 
-      // 5. ONLINE / OFFLINE STATUS TRACKER
       case 'user-status':
         await pusher.trigger("chat-channel", "status-change", {
           userId: user,
-          status, // "online" o "offline"
+          status,
           lastSeen: lastSeen || Date.now()
         });
         return res.status(200).json({ success: true });
