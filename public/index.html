@@ -424,9 +424,9 @@
 
           let mediaContent = "";
           if (msg.fileUrl) {
-            if (msg.fileType.startsWith('image/')) {
+            if (msg.fileType && msg.fileType.startsWith('image/')) {
               mediaContent = `<img src="${msg.fileUrl}" class="media-preview" />`;
-            } else if (msg.fileType.startsWith('video/')) {
+            } else if (msg.fileType && msg.fileType.startsWith('video/')) {
               mediaContent = `<video src="${msg.fileUrl}" controls class="media-preview"></video>`;
             } else {
               mediaContent = `<a href="${msg.fileUrl}" target="_blank" style="color:#00a884; display:block; margin-top:4px;">📁 Download File (${msg.fileName || 'Attachment'})</a>`;
@@ -495,18 +495,25 @@
       selectedFileName.textContent = "";
     }
 
-    // 11. Video Call Integration
+    // 11. Video Call Integration (Fixed for Mobile Browsers)
     document.getElementById('start-call-btn').addEventListener('click', () => {
       document.getElementById('video-overlay').style.display = 'flex';
       const roomName = `Chat4Now_Call_${[myName, activeFriend].sort().join("_")}`;
       
-      jitsiApi = new JitsiMeetExternalAPI('meet.jit.si', {
+      const options = {
         roomName: roomName,
         width: '100%',
         height: '100%',
         parentNode: document.getElementById('jitsi-container'),
-        userInfo: { displayName: myName }
-      });
+        userInfo: { displayName: myName },
+        disableDeepLinking: true, 
+        configOverwrite: {
+          prejoinPageEnabled: false,
+          disableDeepLinking: true
+        }
+      };
+
+      jitsiApi = new JitsiMeetExternalAPI('meet.jit.si', options);
     });
 
     document.getElementById('end-call-btn').addEventListener('click', () => {
