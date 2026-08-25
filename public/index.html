@@ -406,6 +406,9 @@
     let myFriendsList = [];
     let selectedTargetUser = null;
     let selectedTargetType = '';
+    let messagesUnsubscribe = null;
+    let jitsiApi = null;
+    let selectedFile = null;
 
     const loginScreen = document.getElementById('login-screen');
     const mainApp = document.getElementById('main-app');
@@ -530,7 +533,7 @@
 
     sheetMsgBtn.addEventListener('click', () => {
       actionModal.style.display = 'none';
-      if (selectedTargetUser && typeof openChatWith === 'function') {
+      if (selectedTargetUser) {
         openChatWith(selectedTargetUser);
       }
     });
@@ -720,7 +723,7 @@
           `;
 
           chatItem.addEventListener('click', () => {
-            if (typeof openChatWith === 'function') openChatWith(friendName);
+            openChatWith(friendName);
           });
           chatsListDiv.appendChild(chatItem);
         });
@@ -777,8 +780,11 @@
       searchUsersInput.focus();
     });
 
+    function getChatRoomId(user1, user2) {
+      return [user1, user2].sort().join("_");
+    }
+
     window.openChatWith = function(friendName) {
-      // Check if they are friends before opening or sending message
       if (!myFriendsList.includes(friendName)) {
         showToast("Cannot send message: You are not friends with this user.");
         return;
@@ -791,32 +797,213 @@
       document.getElementById('active-friend-avatar').textContent = friendName.charAt(0).toUpperCase();
       document.getElementById('chat-area').classList.add('active');
       document.getElementById('sidebar').classList.add('hidden-mobile');
+
+      loadMessages(activeFriend);
     };
 
     document.getElementById('back-to-list').addEventListener('click', () => {
       document.getElementById('chat-area').classList.remove('active');
       document.getElementById('sidebar').classList.remove('hidden-mobile');
+      if (messagesUnsubscribe) messagesUnsubscribe();
     });
 
-    // Message Sending Protection Check
+    function loadMessages(friendName) {
+      const roomId = getChatRoomId(myName, friendName);
+      const messagesRef = collection(db, "chats", roomId, "messages");
+      const q = query(messagesRef, orderBy("timestamp", "asc"));
+
+      if (messagesUnsubscribe) messagesUnsubscribe();
+
+      messagesUnsubscribe = onSnapshot(q, (snapshot) => {
+        const box = document.getElementById('messages-box');
+        box.innerHTML = "";
+        
+        snapshot.forEach((docSnap) => {
+          const msg = docSnap.data();
+          const isMe = msg.sender === myName;
+          const div = document.createElement('div');
+          div.className = `message-bubble ${isMe ? 'msg-outgoing' : 'msg-incoming'}`;
+          
+          let contentHtml = "";
+          if (msg.type === 'image') {
+            contentHtml = `<img src="${msg.fileUrl}" style="max-width: 100%; border-radius: 8px; margin-top: 4px;" />`;
+          } else if (msg.type === 'file') {
+            contentHtml = `<a href="${msg.fileUrl}" target="_blank" style="color: inherit; text-decoration: underline; display: flex; align-items: center; gap: 6px;">📁 ${msg.fileName || 'Download File'}</a>`;
+          } else {
+            contentHtml = `<div>${escapeHtml(msg.text)}</div>`;
+          }
+
+          div.innerHTML = `
+            ${!isMe ? `<div class="msg-sender">${msg.sender}</div>` : ''}
+            ${contentHtml}
+          `;
+          box.appendChild(div);
+        });
+        box.scrollTop = box.scrollHeight;
+      });
+    }
+
+    function escapeHtml(text) {
+      if (!text) return "";
+      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
     const sendMsgBtn = document.getElementById('send-msg-btn');
     const messageTextInput = document.getElementById('message-text-input');
+    const fileUploadInput = document.getElementById('file-upload-input');
+    const selectedFileNameDisplay = document.getElementById('selected-file-name');
+    const hdToggle = document.getElementById('hd-toggle');
 
-    sendMsgBtn.addEventListener('click', () => {
-      if (!activeFriend || !myFriendsList.includes(activeFriend)) {
+    fileUploadInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        selectedFile = e.target.files[0];
+        selectedFileNameDisplay.textContent = selectedFile.name;
+      }
+    });
+
+    async function sendCurrentMessage() {
+      if (!activeFriend) return;
+      if (!myFriendsList.includes(activeFriend)) {
         showToast("Cannot send message: You are not friends with this user.");
         return;
       }
+
       const text = messageTextInput.value.trim();
-      if (!text) return;
-      // Message sending logic goes here...
-      messageTextInput.value = "";
+      if (!text && !selectedFile) return;
+
+      const roomId = getChatRoomId(myName, activeFriend);
+      const messagesRef = collection(db, "chats", roomId, "messages");
+
+      try {
+        if (selectedFile) {
+          const storageRef = ref(storage, `uploads/${Date.now()}_${selectedFile.name}`);
+          const uploadTask = uploadBytesResumable(storageRef, selectedFile);
+          
+          showToast("Uploading file...");
+          uploadTask.on('state_changed', null, 
+            (error) => { showToast("Upload failed."); console.error(error); },
+            async () => {
+              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+              const isImage = selectedFile.type.startsWith('image/');
+              await addDoc(messagesRef, {
+                sender: myName,
+                text: text || selectedFile.name,
+                fileUrl: downloadURL,
+                fileName: selectedFile.name,
+                type: isImage ? 'image' : 'file',
+                timestamp: serverTimestamp()
+              });
+              selectedFile = null;
+              fileUploadInput.value = "";
+              selectedFileNameDisplay.textContent = "";
+            }
+          );
+        }
+
+        if (text) {
+          await addDoc(messagesRef, {
+            sender: myName,
+            text: text,
+            type: 'text',
+            timestamp: serverTimestamp()
+          });
+          messageTextInput.value = "";
+        }
+      } catch (e) {
+        console.error("Error sending message:", e);
+        showToast("Failed to send message.");
+      }
+    }
+
+    sendMsgBtn.addEventListener('click', sendCurrentMessage);
+    messageTextInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendCurrentMessage();
     });
 
-    function startPingMeasurement() {}
+    // Audio & Video Call via Jitsi
+    function startCall(isVideo) {
+      if (!activeFriend) return;
+      if (!myFriendsList.includes(activeFriend)) {
+        showToast("Cannot call: You are not friends with this user.");
+        return;
+      }
+
+      const roomName = `Chat4Now_${getChatRoomId(myName, activeFriend)}`;
+      document.getElementById('call-type-title').textContent = isVideo ? "Video Call" : "Voice Call";
+      document.getElementById('call-overlay').style.display = "flex";
+
+      const domain = "meet.jit.si";
+      const options = {
+        roomName: roomName,
+        width: "100%",
+        height: "100%",
+        parentNode: document.querySelector('#jitsi-container'),
+        userInfo: { displayName: myName },
+        configOverwrite: {
+          startWithAudioMuted: false,
+          startWithVideoMuted: !isVideo
+        }
+      };
+
+      jitsiApi = new JitsiMeetExternalAPI(domain, options);
+
+      // Notify recipient via Firestore call signal
+      setDoc(doc(db, "calls", activeFriend), {
+        caller: myName,
+        roomName: roomName,
+        isVideo: isVideo,
+        timestamp: serverTimestamp()
+      }, { merge: true });
+    }
+
+    document.getElementById('start-voice-call-btn').addEventListener('click', () => startCall(false));
+    document.getElementById('start-video-call-btn').addEventListener('click', () => startCall(true));
+
+    document.getElementById('end-call-btn').addEventListener('click', () => {
+      if (jitsiApi) {
+        jitsiApi.dispose();
+        jitsiApi = null;
+      }
+      document.getElementById('call-overlay').style.display = "none";
+    });
+
+    function listenIncomingCalls() {
+      onSnapshot(doc(db, "calls", myName), (docSnap) => {
+        if (!docSnap.exists()) return;
+        const callData = docSnap.data();
+        if (callData && callData.caller && callData.roomName) {
+          if (confirm(`Incoming ${callData.isVideo ? 'Video' : 'Voice'} Call from ${callData.caller}. Accept?`)) {
+            document.getElementById('call-type-title').textContent = callData.isVideo ? "Video Call" : "Voice Call";
+            document.getElementById('call-overlay').style.display = "flex";
+
+            const options = {
+              roomName: callData.roomName,
+              width: "100%",
+              height: "100%",
+              parentNode: document.querySelector('#jitsi-container'),
+              userInfo: { displayName: myName }
+            };
+            jitsiApi = new JitsiMeetExternalAPI("meet.jit.si", options);
+          }
+          // Clear call doc after prompt
+          deleteDoc(doc(db, "calls", myName)).catch(() => {});
+        }
+      });
+    }
+
+    function startPingMeasurement() {
+      setInterval(() => {
+        const start = Date.now();
+        fetch("https://www.gstatic.com/generate_204", { mode: 'no-cors' }).then(() => {
+          const ping = Date.now() - start;
+          document.getElementById('ping-display').textContent = `Ping: ${ping} ms`;
+        }).catch(() => {
+          document.getElementById('ping-display').textContent = `Ping: -- ms`;
+        });
+      }, 10000);
+    }
     function listenMyUserData() {}
     function listenAllUsersStatus() {}
-    function listenIncomingCalls() {}
   </script>
 </body>
 </html>
