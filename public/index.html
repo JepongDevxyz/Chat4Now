@@ -9,7 +9,7 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
     body {
       background-color: #121212;
@@ -36,11 +36,25 @@
     p {
       color: #aaa;
       font-size: 14px;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
-    .btn-google {
+    input[type="text"] {
       width: 100%;
-      padding: 12px 16px;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background-color: #2a2a2a;
+      color: white;
+      font-size: 14px;
+      margin-bottom: 16px;
+      outline: none;
+    }
+    input[type="text"]:focus {
+      border-color: #0d6efd;
+    }
+    .btn-enter {
+      width: 100%;
+      padding: 12px;
       background-color: #0d6efd;
       color: white;
       border: none;
@@ -48,134 +62,86 @@
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
       transition: background-color 0.2s ease;
     }
-    .btn-google:hover {
+    .btn-enter:hover {
       background-color: #0b5ed7;
     }
-    #user-profile {
+    /* Placeholder UI para sa Chat Screen */
+    #chat-screen {
       display: none;
-      margin-top: 20px;
+      text-align: left;
     }
-    .avatar {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      margin-bottom: 12px;
+    .chat-header {
+      border-bottom: 1px solid #333;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
-    .btn-logout {
-      margin-top: 16px;
+    .btn-leave {
       background-color: #dc3545;
-      padding: 8px 16px;
-      border: none;
-      border-radius: 6px;
       color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
       cursor: pointer;
+      font-size: 12px;
     }
   </style>
 </head>
 <body>
 
   <div class="container">
-    <div id="auth-section">
+    <!-- Login / Enter Screen -->
+    <div id="login-screen">
       <h1>Chat4Now</h1>
-      <p>Mag-sign in para gumawa ng iyong profile at makipag-ugnayan.</p>
-      
-      <button id="google-login-btn" class="btn-google">
-        <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-        </svg>
-        Continue with Google
-      </button>
+      <p>Maglagay ng pangalan para makapasok sa chat UI prototype.</p>
+      <input type="text" id="username-input" placeholder="Enter your name..." />
+      <button id="enter-btn" class="btn-enter">Enter Chat Room</button>
     </div>
 
-    <div id="user-profile">
-      <img id="user-photo" class="avatar" src="" alt="Profile Picture" />
-      <h2 id="user-name"></h2>
-      <p id="user-email"></p>
-      <button id="logout-btn" class="btn-logout">Logout</button>
+    <!-- Main Chat UI Area (Dito mo ididisenyo ang UI mo) -->
+    <div id="chat-screen">
+      <div class="chat-header">
+        <div>
+          <h2 id="display-name">User</h2>
+          <small style="color: #28a745;">● Online</small>
+        </div>
+        <button id="leave-btn" class="btn-leave">Exit</button>
+      </div>
+      
+      <!-- Simulan mo dito ang pagbuo ng Chat UI Elements -->
+      <div style="height: 200px; background: #141414; border-radius: 8px; padding: 12px; margin-bottom: 12px; overflow-y: auto;">
+        <p style="color: #666; text-align: center; font-size: 12px;">Chat UI Area (Ready for Development)</p>
+      </div>
     </div>
   </div>
 
-  <!-- Firebase Modular SDK -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
-    import { 
-      getAuth, 
-      GoogleAuthProvider, 
-      signInWithRedirect, 
-      getRedirectResult, 
-      onAuthStateChanged, 
-      signOut 
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+  <script>
+    const loginScreen = document.getElementById('login-screen');
+    const chatScreen = document.getElementById('chat-screen');
+    const usernameInput = document.getElementById('username-input');
+    const enterBtn = document.getElementById('enter-btn');
+    const leaveBtn = document.getElementById('leave-btn');
+    const displayName = document.getElementById('display-name');
 
-    // Ang iyong Firebase Configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyC3mJ-9-hv85jZiAsGi_kuuZjj_mmjAUmQ",
-      authDomain: "chat4now-orforever.firebaseapp.com",
-      projectId: "chat4now-orforever",
-      storageBucket: "chat4now-orforever.firebasestorage.app",
-      messagingSenderId: "1027816238177",
-      appId: "1:1027816238177:web:9b3794c53f4d194cbc4e20",
-      measurementId: "G-KCH61T1TYP"
-    };
-
-    // Initialize Firebase & Analytics
-    const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
-    const auth = getAuth(app);
-    const provider = new GoogleAuthProvider();
-
-    const authSection = document.getElementById('auth-section');
-    const userProfile = document.getElementById('user-profile');
-    const loginBtn = document.getElementById('google-login-btn');
-    const logoutBtn = document.getElementById('logout-btn');
-    const userName = document.getElementById('user-name');
-    const userEmail = document.getElementById('user-email');
-    const userPhoto = document.getElementById('user-photo');
-
-    // 1. Google Sign-In gamit ang Redirect
-    loginBtn.addEventListener('click', () => {
-      signInWithRedirect(auth, provider);
-    });
-
-    // 2. Kunin ang resulta pagka-redirect
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result) {
-          console.log("Logged in successfully:", result.user);
-        }
-      })
-      .catch((error) => {
-        console.error("Login Error:", error);
-        alert("Login error: " + error.message);
-      });
-
-    // 3. Subaybayan ang state ng User
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        authSection.style.display = 'none';
-        userProfile.style.display = 'block';
-        userName.textContent = user.displayName;
-        userEmail.textContent = user.email;
-        userPhoto.src = user.photoURL || 'https://via.placeholder.com/80';
+    enterBtn.addEventListener('click', () => {
+      const name = usernameInput.value.trim();
+      if (name) {
+        displayName.textContent = name;
+        loginScreen.style.display = 'none';
+        chatScreen.style.display = 'block';
       } else {
-        authSection.style.display = 'block';
-        userProfile.style.display = 'none';
+        alert('Mangyaring maglagay ng pangalan.');
       }
     });
 
-    // 4. Logout Handler
-    logoutBtn.addEventListener('click', () => {
-      signOut(auth).catch((error) => console.error("Logout Error:", error));
+    leaveBtn.addEventListener('click', () => {
+      loginScreen.style.display = 'block';
+      chatScreen.style.display = 'none';
+      usernameInput.value = '';
     });
   </script>
 </body>
