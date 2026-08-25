@@ -2,47 +2,98 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Chat4Now Messenger</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    body { background-color: #0b141a; color: #e9edef; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+    
+    /* Dynamic Viewport Height para sa Fit to Mobile Screen */
+    html, body { 
+      height: 100dvh; 
+      width: 100vw; 
+      overflow: hidden; 
+      background-color: #0b141a; 
+      color: #e9edef; 
+    }
 
-    /* Main Container - Fit to Screen */
-    .app-container { width: 100vw; height: 100vh; max-width: 1200px; max-height: 900px; display: flex; background: #111b21; border-radius: 0px; overflow: hidden; box-shadow: 0 12px 32px rgba(0,0,0,0.5); }
-    @media (min-width: 768px) { .app-container { height: 95vh; border-radius: 12px; } }
+    body { 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+    }
+
+    /* Main App Outer Container */
+    .app-container { 
+      width: 100vw; 
+      height: 100dvh; 
+      max-width: 1200px; 
+      max-height: 100dvh; 
+      display: flex; 
+      background: #111b21; 
+      position: relative; 
+      overflow: hidden; 
+    }
+
+    @media (min-width: 768px) { 
+      .app-container { 
+        height: 95dvh; 
+        max-height: 900px; 
+        border-radius: 12px; 
+        box-shadow: 0 12px 32px rgba(0,0,0,0.5); 
+      } 
+    }
 
     /* Login Screen */
-    .login-card { background: #202c33; padding: 30px; border-radius: 16px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
+    .login-card { 
+      background: #202c33; 
+      padding: 30px; 
+      border-radius: 16px; 
+      width: 90%; 
+      max-width: 400px; 
+      text-align: center; 
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4); 
+    }
     .login-card h1 { color: #00a884; font-size: 28px; margin-bottom: 8px; }
     .login-card p { color: #8696a0; font-size: 14px; margin-bottom: 20px; }
     .login-card input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #2a3942; background: #111b21; color: #fff; margin-bottom: 16px; font-size: 15px; outline: none; }
-    .btn-login { width: 100%; padding: 12px; border-radius: 8px; border: none; background: #00a884; color: #111b21; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; }
-    .btn-login:hover { background: #008f6f; }
+    .btn-login { width: 100%; padding: 12px; border-radius: 8px; border: none; background: #00a884; color: #111b21; font-weight: bold; font-size: 16px; cursor: pointer; }
 
-    /* Main Messenger App */
-    #main-app { display: none; width: 100%; height: 100%; flex-direction: row; }
+    /* Main Messenger Screen */
+    #main-app { display: none; width: 100%; height: 100dvh; flex-direction: row; }
 
-    /* Sidebar Area */
-    .sidebar { width: 100%; max-width: 350px; background: #111b21; border-right: 1px solid #222d34; display: flex; flex-direction: column; height: 100%; }
-    @media (max-width: 768px) { .sidebar { max-width: 100%; } .chat-area.active { display: flex !important; z-index: 10; } .sidebar.inactive { display: none !important; } }
+    /* Sidebar Layout */
+    .sidebar { 
+      width: 100%; 
+      max-width: 350px; 
+      background: #111b21; 
+      border-right: 1px solid #222d34; 
+      display: flex; 
+      flex-direction: column; 
+      height: 100%; 
+    }
 
-    .sidebar-header { background: #202c33; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222d34; }
+    @media (max-width: 768px) { 
+      .sidebar { max-width: 100%; } 
+      .chat-area { display: none; } 
+      .chat-area.active { display: flex !important; position: absolute; top: 0; left: 0; width: 100vw; height: 100dvh; z-index: 20; } 
+    }
+
+    .sidebar-header { background: #202c33; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222d34; flex-shrink: 0; }
     .user-info { display: flex; align-items: center; gap: 10px; }
     .avatar-icon { width: 38px; height: 38px; border-radius: 50%; background: #00a884; color: #111b21; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; }
     .ping-badge { font-size: 11px; background: #222d34; padding: 4px 8px; border-radius: 12px; color: #25d366; border: 1px solid #2a3942; }
 
     /* Tabs Bar */
-    .tab-bar { display: flex; background: #111b21; border-bottom: 1px solid #222d34; }
-    .tab-btn { flex: 1; padding: 12px 0; background: none; border: none; color: #8696a0; font-weight: bold; font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent; transition: 0.2s; }
+    .tab-bar { display: flex; background: #111b21; border-bottom: 1px solid #222d34; flex-shrink: 0; }
+    .tab-btn { flex: 1; padding: 12px 0; background: none; border: none; color: #8696a0; font-weight: bold; font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent; }
     .tab-btn.active { color: #00a884; border-bottom: 2px solid #00a884; }
 
     /* Lists Area */
     .list-container { flex: 1; overflow-y: auto; padding: 8px; }
-    .search-box { padding: 8px; background: #111b21; }
+    .search-box { padding: 8px; background: #111b21; flex-shrink: 0; }
     .search-box input { width: 100%; padding: 10px; border-radius: 8px; border: none; background: #202c33; color: #e9edef; font-size: 14px; outline: none; }
 
-    .list-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-radius: 8px; cursor: pointer; transition: 0.2s; margin-bottom: 4px; }
+    .list-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-radius: 8px; cursor: pointer; margin-bottom: 4px; }
     .list-item:hover { background: #202c33; }
     .list-item-left { display: flex; align-items: center; gap: 12px; }
     .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
@@ -53,29 +104,69 @@
     .btn-add { background: #00a884; color: #111b21; }
     .btn-accept { background: #25d366; color: #111b21; }
 
-    /* Main Chat Area */
-    .chat-area { flex: 1; display: flex; flex-direction: column; background: #0b141a; height: 100%; position: relative; }
-    .chat-header { background: #202c33; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #222d34; }
+    /* Chat Area Dynamic Flex Layout */
+    .chat-area { 
+      flex: 1; 
+      display: flex; 
+      flex-direction: column; 
+      background: #0b141a; 
+      height: 100%; 
+      width: 100%; 
+      position: relative; 
+      overflow: hidden; 
+    }
+
+    .chat-header { 
+      background: #202c33; 
+      padding: 12px 16px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      border-bottom: 1px solid #222d34; 
+      flex-shrink: 0; 
+      height: 60px; 
+    }
+
     .back-btn { display: none; background: none; border: none; color: #00a884; font-size: 20px; cursor: pointer; margin-right: 10px; }
     @media (max-width: 768px) { .back-btn { display: block; } }
 
-    .messages-box { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; background-image: radial-gradient(#1f2c34 1px, transparent 1px); background-size: 20px 20px; }
-    .message-bubble { max-width: 75%; padding: 8px 12px; border-radius: 8px; font-size: 14px; line-height: 1.4; word-wrap: break-word; position: relative; }
-    .msg-incoming { background: #202c33; align-self: flex-start; border-top-left-radius: 0; color: #e9edef; }
-    .msg-outgoing { background: #005c4b; align-self: flex-end; border-top-right-radius: 0; color: #e9edef; }
+    /* Scrollable Chat Message Area */
+    .messages-box { 
+      flex: 1; 
+      overflow-y: auto; 
+      padding: 16px; 
+      display: flex; 
+      flex-direction: column; 
+      gap: 10px; 
+      background-image: radial-gradient(#1f2c34 1px, transparent 1px); 
+      background-size: 20px 20px; 
+    }
+
+    .message-bubble { max-width: 80%; padding: 8px 12px; border-radius: 8px; font-size: 14px; line-height: 1.4; word-wrap: break-word; }
+    .msg-incoming { background: #202c33; align-self: flex-start; color: #e9edef; }
+    .msg-outgoing { background: #005c4b; align-self: flex-end; color: #e9edef; }
     .msg-sender { font-size: 11px; font-weight: bold; color: #25d366; margin-bottom: 2px; }
-    .msg-time { font-size: 10px; color: #8696a0; text-align: right; margin-top: 4px; }
-    .media-preview { max-width: 100%; max-height: 250px; border-radius: 6px; margin-top: 6px; display: block; }
+    .media-preview { max-width: 100%; max-height: 220px; border-radius: 6px; margin-top: 6px; display: block; }
 
-    /* Chat Footer / Input */
-    .chat-footer { background: #202c33; padding: 10px 16px; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid #222d34; }
+    /* Bottom Sticky Chat Footer Container */
+    .chat-footer { 
+      background: #202c33; 
+      padding: 10px 12px; 
+      display: flex; 
+      flex-direction: column; 
+      gap: 6px; 
+      border-top: 1px solid #222d34; 
+      flex-shrink: 0; 
+      width: 100%; 
+    }
+
     .controls-bar { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #8696a0; }
-    .input-row { display: flex; align-items: center; gap: 10px; }
+    .input-row { display: flex; align-items: center; gap: 8px; width: 100%; }
     .input-row input[type="text"] { flex: 1; padding: 12px; border-radius: 8px; border: none; background: #2a3942; color: #fff; font-size: 14px; outline: none; }
-    .btn-send { padding: 12px 18px; border-radius: 8px; border: none; background: #00a884; color: #111b21; font-weight: bold; cursor: pointer; }
-    .icon-btn { background: none; border: none; color: #8696a0; font-size: 20px; cursor: pointer; }
+    .btn-send { padding: 12px 16px; border-radius: 8px; border: none; background: #00a884; color: #111b21; font-weight: bold; cursor: pointer; flex-shrink: 0; }
+    .icon-btn { background: none; border: none; color: #8696a0; font-size: 20px; cursor: pointer; flex-shrink: 0; }
 
-    /* Video Call Overlay */
+    /* Video Overlay */
     #video-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #111b21; z-index: 100; display: none; flex-direction: column; }
   </style>
   <script src="https://meet.jit.si/external_api.js"></script>
@@ -106,19 +197,16 @@
         <div class="ping-badge" id="ping-display">Ping: -- ms</div>
       </div>
 
-      <!-- Navigation Tabs -->
       <div class="tab-bar">
         <button class="tab-btn active" id="tab-chats">CHATS</button>
         <button class="tab-btn" id="tab-requests">REQUESTS <span id="req-count"></span></button>
         <button class="tab-btn" id="tab-search">FIND</button>
       </div>
 
-      <!-- Search Bar -->
       <div class="search-box" id="search-box-container" style="display: none;">
         <input type="text" id="search-users-input" placeholder="🔍 Search users by name..." />
       </div>
 
-      <!-- Content Lists -->
       <div class="list-container">
         <div id="chats-list"></div>
         <div id="requests-list" style="display: none;"></div>
@@ -134,14 +222,14 @@
         <div>Select a friend from the left sidebar to start chatting</div>
       </div>
 
-      <!-- Active Chat Window -->
-      <div id="active-chat-window" style="display: none; flex-direction: column; height: 100%;">
+      <!-- Active Chat Window Structure -->
+      <div id="active-chat-window" style="display: none; flex-direction: column; height: 100%; width: 100%;">
         <div class="chat-header">
           <div style="display: flex; align-items: center;">
             <button class="back-btn" id="back-to-list">←</button>
             <div>
               <strong id="active-friend-name">Friend Name</strong>
-              <div style="font-size: 11px;" id="active-friend-status">Offline</div>
+              <div style="font-size: 11px; color: #8696a0;" id="active-friend-status">Offline</div>
             </div>
           </div>
           <button class="icon-btn" id="start-call-btn" title="Start Video Call">📹</button>
@@ -155,7 +243,7 @@
               <input type="checkbox" id="hd-toggle" />
               <span><b>HD File Mode</b> (Up to 1GB Storage)</span>
             </label>
-            <span id="selected-file-name" style="color: #00a884;"></span>
+            <span id="selected-file-name" style="color: #00a884; font-size: 11px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
           </div>
 
           <div class="input-row">
@@ -167,7 +255,7 @@
         </div>
       </div>
 
-      <!-- Call Window Overlay -->
+      <!-- Video Call Overlay -->
       <div id="video-overlay">
         <div style="padding: 10px; background: #202c33; display: flex; justify-content: space-between; align-items: center;">
           <span id="call-title">Video Call</span>
@@ -180,13 +268,12 @@
 
   </div>
 
-  <!-- Firebase Scripts (v10.8.0) -->
+  <!-- Firebase Integration -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, setDoc, doc, where, getDocs, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
-    // Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyC3mJ-9-hv85jZiAsGi_kuuZjj_mmjAUmQ",
       authDomain: "chat4now-orforever.firebaseapp.com",
@@ -207,7 +294,6 @@
     let myFriendsList = [];
     let myRequestsList = [];
 
-    // DOM Elements
     const loginScreen = document.getElementById('login-screen');
     const mainApp = document.getElementById('main-app');
     const usernameInput = document.getElementById('username-input');
@@ -224,7 +310,7 @@
     const fileUploadInput = document.getElementById('file-upload-input');
     const selectedFileName = document.getElementById('selected-file-name');
 
-    // 1. Enter App & Register Presence
+    // 1. Enter App and Maintain Persistent Online State
     enterBtn.addEventListener('click', async () => {
       const name = usernameInput.value.trim();
       if (!name) return alert("Please enter your name!");
@@ -233,14 +319,7 @@
       document.getElementById('my-name-display').textContent = myName;
       document.getElementById('user-avatar').textContent = myName.charAt(0).toUpperCase();
 
-      // Register User to Database
-      await setDoc(doc(db, "users", myName), {
-        name: myName,
-        status: "online",
-        lastSeen: serverTimestamp(),
-        friends: [],
-        requests: []
-      }, { merge: true });
+      await setUserOnline();
 
       loginScreen.style.display = "none";
       mainApp.style.display = "flex";
@@ -248,9 +327,33 @@
       startPingMeasurement();
       listenMyUserData();
       listenAllUsersStatus();
+      keepOnlineHeartbeat();
     });
 
-    // 2. Realtime Ping / Latency Indicator
+    async function setUserOnline() {
+      if (!myName) return;
+      await setDoc(doc(db, "users", myName), {
+        name: myName,
+        status: "online",
+        lastSeen: Date.now(),
+        friends: [],
+        requests: []
+      }, { merge: true });
+    }
+
+    // Heartbeat para mapanatiling Online ang status
+    function keepOnlineHeartbeat() {
+      setInterval(async () => {
+        if (myName) {
+          await setDoc(doc(db, "users", myName), {
+            status: "online",
+            lastSeen: Date.now()
+          }, { merge: true });
+        }
+      }, 10000);
+    }
+
+    // 2. Realtime Latency Tracker
     function startPingMeasurement() {
       setInterval(async () => {
         const start = Date.now();
@@ -264,7 +367,7 @@
       }, 5000);
     }
 
-    // 3. Listen User Data (Friends & Requests)
+    // 3. User Data Listener
     function listenMyUserData() {
       onSnapshot(doc(db, "users", myName), (snapshot) => {
         if (!snapshot.exists()) return;
@@ -278,12 +381,16 @@
       });
     }
 
-    // 4. Listen Realtime Online/Offline Statuses
+    // 4. Robust Realtime Online/Offline Status Calculation
     window.userStatuses = {};
     function listenAllUsersStatus() {
       onSnapshot(collection(db, "users"), (snapshot) => {
+        const now = Date.now();
         snapshot.forEach(d => {
-          window.userStatuses[d.id] = d.data().status || "offline";
+          const u = d.data();
+          // Kapag walang Heartbeat sa nakalipas na 35 segundo, itinuturing na offline
+          const isRecentlyActive = u.lastSeen && (now - u.lastSeen < 35000);
+          window.userStatuses[d.id] = (u.status === "online" && isRecentlyActive) ? "online" : "offline";
         });
         renderFriendsList();
         if (activeFriend) {
@@ -294,7 +401,7 @@
       });
     }
 
-    // 5. Navigation Tabs Handler
+    // 5. Tabs Navigation
     document.getElementById('tab-chats').addEventListener('click', (e) => switchTab('chats', e.target));
     document.getElementById('tab-requests').addEventListener('click', (e) => switchTab('requests', e.target));
     document.getElementById('tab-search').addEventListener('click', (e) => switchTab('search', e.target));
@@ -336,13 +443,13 @@
     });
 
     window.sendFriendRequest = async (targetName) => {
-      await updateDoc(doc(db, "users", targetName), {
+      await updateDoc(doc(doc(db, "users", targetName)), {
         requests: arrayUnion(myName)
       });
       alert(`Friend request sent to ${targetName}!`);
     };
 
-    // 7. Render Friend Requests & Accept System
+    // 7. Friend Request Management
     function renderRequestsList() {
       requestsListDiv.innerHTML = "";
       if (myRequestsList.length === 0) {
@@ -361,7 +468,6 @@
     }
 
     window.acceptFriendRequest = async (reqUser) => {
-      // Add to both users' friends list
       await updateDoc(doc(db, "users", myName), {
         friends: arrayUnion(reqUser),
         requests: myRequestsList.filter(r => r !== reqUser)
@@ -372,7 +478,7 @@
       alert(`You are now friends with ${reqUser}!`);
     };
 
-    // 8. Render Friends Chat List
+    // 8. Render Friends List
     function renderFriendsList() {
       chatsListDiv.innerHTML = "";
       if (myFriendsList.length === 0) {
@@ -395,7 +501,7 @@
       });
     }
 
-    // 9. Open Private Chat Window
+    // 9. Open Chat Screen
     let messagesUnsubscribe = null;
     function openChatWindow(friendName) {
       activeFriend = friendName;
@@ -403,12 +509,12 @@
       document.getElementById('active-chat-window').style.display = 'flex';
       activeFriendName.textContent = activeFriend;
 
-      if (window.innerWidth <= 768) {
-        document.getElementById('sidebar').classList.add('inactive');
-        document.getElementById('chat-area').classList.add('active');
-      }
+      const st = window.userStatuses[activeFriend] || "offline";
+      activeFriendStatus.textContent = st;
+      activeFriendStatus.style.color = st === "online" ? "#25d366" : "#8696a0";
 
-      // Generate Unique Chat Room ID for 1-on-1
+      document.getElementById('chat-area').classList.add('active');
+
       const chatId = [myName, activeFriend].sort().join("_");
 
       if (messagesUnsubscribe) messagesUnsubscribe();
@@ -445,11 +551,10 @@
     }
 
     document.getElementById('back-to-list').addEventListener('click', () => {
-      document.getElementById('sidebar').classList.remove('inactive');
       document.getElementById('chat-area').classList.remove('active');
     });
 
-    // 10. Send Message & Up to 1GB File Upload
+    // 10. Send Messages and Up to 1GB Files
     fileUploadInput.addEventListener('change', (e) => {
       selectedFile = e.target.files[0];
       if (selectedFile) {
@@ -495,7 +600,7 @@
       selectedFileName.textContent = "";
     }
 
-    // 11. Video Call Integration (Fixed for Mobile Browsers)
+    // 11. Mobile-Optimized Video Call
     document.getElementById('start-call-btn').addEventListener('click', () => {
       document.getElementById('video-overlay').style.display = 'flex';
       const roomName = `Chat4Now_Call_${[myName, activeFriend].sort().join("_")}`;
@@ -506,7 +611,7 @@
         height: '100%',
         parentNode: document.getElementById('jitsi-container'),
         userInfo: { displayName: myName },
-        disableDeepLinking: true, 
+        disableDeepLinking: true,
         configOverwrite: {
           prejoinPageEnabled: false,
           disableDeepLinking: true
@@ -519,13 +624,6 @@
     document.getElementById('end-call-btn').addEventListener('click', () => {
       if (jitsiApi) jitsiApi.dispose();
       document.getElementById('video-overlay').style.display = 'none';
-    });
-
-    // 12. Handle Disconnect / Window Close (Offline Status)
-    window.addEventListener('beforeunload', () => {
-      if (myName) {
-        setDoc(doc(db, "users", myName), { status: "offline" }, { merge: true });
-      }
     });
   </script>
 </body>
