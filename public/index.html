@@ -7,28 +7,42 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
     body { background-color: #121212; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 10px; }
-    .card { background-color: #1e1e1e; padding: 20px; border-radius: 16px; width: 100%; max-width: 450px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+    .card { background-color: #1e1e1e; padding: 20px; border-radius: 16px; width: 100%; max-width: 480px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
     h1, h2 { text-align: center; margin-bottom: 12px; }
     p { color: #aaa; font-size: 14px; text-align: center; margin-bottom: 16px; }
-    input[type="text"] { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #2a2a2a; color: white; margin-bottom: 12px; outline: none; }
-    button { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
-    .btn-primary { background: #0d6efd; color: white; }
-    .btn-primary:hover { background: #0b5ed7; }
-    .btn-call { background: #198754; color: white; margin-bottom: 10px; }
-    .btn-danger { background: #dc3545; color: white; }
+    input[type="text"] { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #333; background: #2a2a2a; color: white; margin-bottom: 10px; outline: none; }
+    button { padding: 10px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .btn-primary { background: #0d6efd; color: white; width: 100%; }
+    .btn-call { background: #198754; color: white; width: 100%; margin-bottom: 10px; }
+    .btn-danger { background: #dc3545; color: white; width: 100%; }
     
     #app-screen { display: none; }
-    .chat-box { height: 250px; background: #141414; border-radius: 8px; padding: 12px; overflow-y: auto; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
+    
+    /* Search & Friends Area */
+    .section-box { background: #181818; padding: 12px; border-radius: 8px; margin-bottom: 12px; }
+    .user-item { display: flex; justify-content: space-between; align-items: center; background: #252525; padding: 8px 12px; border-radius: 6px; margin-top: 6px; }
+    .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .online { background-color: #28a745; }
+    .offline { background-color: #6c757d; }
+    
+    /* Chat Area */
+    .chat-box { height: 220px; background: #141414; border-radius: 8px; padding: 12px; overflow-y: auto; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
     .message { background: #2a2a2a; padding: 8px 12px; border-radius: 8px; max-width: 80%; width: fit-content; font-size: 14px; }
     .message.my-msg { background: #0d6efd; align-self: flex-end; }
     .msg-user { font-size: 11px; color: #ccc; margin-bottom: 2px; font-weight: bold; }
-    .chat-input-group { display: flex; gap: 8px; }
-    .chat-input-group input { margin-bottom: 0; }
-    .chat-input-group button { width: auto; padding: 0 16px; }
-    #video-container { width: 100%; height: 300px; margin-bottom: 12px; border-radius: 8px; overflow: hidden; display: none; }
+    .media-attachment { max-width: 100%; max-height: 180px; border-radius: 6px; margin-top: 4px; display: block; }
+
+    /* Media Controls */
+    .controls-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 8px; font-size: 12px; color: #aaa; }
+    .hd-toggle { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+    .hd-toggle input { cursor: pointer; }
+    
+    .chat-input-group { display: flex; gap: 6px; align-items: center; }
+    .chat-input-group input[type="text"] { margin-bottom: 0; flex: 1; }
+    .file-btn { background: #333; color: white; padding: 10px; border-radius: 8px; cursor: pointer; }
+    
+    #video-container { width: 100%; height: 250px; margin-bottom: 12px; border-radius: 8px; overflow: hidden; display: none; }
   </style>
-  
-  <!-- Jitsi External API para sa Voice/Video Call -->
   <script src="https://meet.jit.si/external_api.js"></script>
 </head>
 <body>
@@ -44,20 +58,41 @@
 
     <!-- Main App Screen -->
     <div id="app-screen">
-      <h2 id="room-title">Global Room</h2>
-      
+      <!-- Search & Add Friends Section -->
+      <div class="section-box">
+        <input type="text" id="search-input" placeholder="🔍 Search users by name..." />
+        <div id="search-results"></div>
+      </div>
+
+      <!-- Friends List with Online/Offline Indicator -->
+      <div class="section-box">
+        <small style="color: #aaa; font-weight: bold;">FRIENDS LIST</small>
+        <div id="friends-list"></div>
+      </div>
+
       <!-- Video Call Container -->
       <div id="video-container"></div>
-      
       <button class="btn-call" id="call-btn">📹 Start / Join Video Call</button>
       <button class="btn-danger" id="end-call-btn" style="display: none; margin-bottom: 10px;">🔴 End Call</button>
 
       <!-- Chat Box -->
       <div class="chat-box" id="chat-box"></div>
+
+      <!-- Media & HD Controls -->
+      <div class="controls-row">
+        <label class="hd-toggle">
+          <input type="checkbox" id="hd-mode" />
+          <span><b>HD Mode</b> (Original Quality)</span>
+        </label>
+        <span id="file-name-display"></span>
+      </div>
       
+      <!-- Chat Input Controls -->
       <div class="chat-input-group">
+        <label class="file-btn" for="file-input">📁</label>
+        <input type="file" id="file-input" accept="image/*,video/*,.pdf,.doc,.docx" style="display: none;" />
         <input type="text" id="msg-input" placeholder="Type a message..." />
-        <button class="btn-primary" id="send-btn">Send</button>
+        <button class="btn-primary" id="send-btn" style="width: auto;">Send</button>
       </div>
       
       <button class="btn-danger" id="exit-btn" style="margin-top: 12px;">Exit Room</button>
@@ -66,9 +101,8 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, setDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // Firebase Configuration
     const firebaseConfig = {
       apiKey: "AIzaSyC3mJ-9-hv85jZiAsGi_kuuZjj_mmjAUmQ",
       authDomain: "chat4now-orforever.firebaseapp.com",
@@ -83,6 +117,9 @@
 
     let currentUser = "";
     let jitsiApi = null;
+    let selectedFileBase64 = null;
+    let selectedFileType = "";
+    let friends = [];
 
     const loginScreen = document.getElementById('login-screen');
     const appScreen = document.getElementById('app-screen');
@@ -90,20 +127,130 @@
     const chatBox = document.getElementById('chat-box');
     const msgInput = document.getElementById('msg-input');
     const videoContainer = document.getElementById('video-container');
+    const fileInput = document.getElementById('file-input');
+    const fileNameDisplay = document.getElementById('file-name-display');
 
-    // 1. Join Chat
-    document.getElementById('join-btn').addEventListener('click', () => {
+    // 1. Join Chat & Register Presence
+    document.getElementById('join-btn').addEventListener('click', async () => {
       const name = usernameInput.value.trim();
       if (!name) return alert("Please enter your name!");
       currentUser = name;
       
+      // Update status to Online sa Firestore
+      await setDoc(doc(db, "users", currentUser), {
+        name: currentUser,
+        status: "online",
+        lastSeen: serverTimestamp()
+      }, { merge: true });
+
       loginScreen.style.display = "none";
       appScreen.style.display = "block";
       
       loadRealtimeMessages();
+      listenUsersStatus();
     });
 
-    // 2. Realtime Messages (Firestore)
+    // 2. Search Users & Add Friend
+    document.getElementById('search-input').addEventListener('input', (e) => {
+      const term = e.target.value.toLowerCase().trim();
+      const searchResults = document.getElementById('search-results');
+      searchResults.innerHTML = "";
+      if (!term) return;
+
+      onSnapshot(collection(db, "users"), (snapshot) => {
+        searchResults.innerHTML = "";
+        snapshot.forEach((userDoc) => {
+          const u = userDoc.data();
+          if (u.name !== currentUser && u.name.toLowerCase().includes(term)) {
+            const div = document.createElement('div');
+            div.className = 'user-item';
+            div.innerHTML = `
+              <span>${u.name}</span>
+              <button style="padding: 4px 8px; background: #0d6efd; color: white;" onclick="addFriend('${u.name}')">+ Add Friend</button>
+            `;
+            searchResults.appendChild(div);
+          }
+        });
+      });
+    });
+
+    window.addFriend = (name) => {
+      if (!friends.includes(name)) {
+        friends.push(name);
+        alert(`${name} added to friends list!`);
+        renderFriendsList();
+      }
+    };
+
+    // 3. Listen for Online / Offline Status
+    function listenUsersStatus() {
+      onSnapshot(collection(db, "users"), (snapshot) => {
+        window.allUsers = {};
+        snapshot.forEach(doc => {
+          window.allUsers[doc.id] = doc.data().status;
+        });
+        renderFriendsList();
+      });
+    }
+
+    function renderFriendsList() {
+      const friendsListDiv = document.getElementById('friends-list');
+      friendsListDiv.innerHTML = "";
+      friends.forEach(fName => {
+        const status = window.allUsers && window.allUsers[fName] ? window.allUsers[fName] : "offline";
+        const div = document.createElement('div');
+        div.className = 'user-item';
+        div.innerHTML = `
+          <span><span class="status-dot ${status}"></span>${fName}</span>
+          <small style="color: #aaa;">${status}</small>
+        `;
+        friendsListDiv.appendChild(div);
+      });
+    }
+
+    // 4. File Attachment Handler (HD Toggle)
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      fileNameDisplay.textContent = file.name;
+      selectedFileType = file.type;
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        selectedFileBase64 = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // 5. Send Message (Text & Files)
+    document.getElementById('send-btn').addEventListener('click', sendMessage);
+    msgInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+    async function sendMessage() {
+      const text = msgInput.value.trim();
+      const isHD = document.getElementById('hd-mode').checked;
+
+      if (!text && !selectedFileBase64) return;
+
+      await addDoc(collection(db, "messages"), {
+        text: text,
+        user: currentUser,
+        fileUrl: selectedFileBase64 || null,
+        fileType: selectedFileType || null,
+        isHD: isHD,
+        createdAt: serverTimestamp()
+      });
+
+      // Clear input
+      msgInput.value = "";
+      fileInput.value = "";
+      selectedFileBase64 = null;
+      selectedFileType = "";
+      fileNameDisplay.textContent = "";
+    }
+
+    // 6. Realtime Messages
     function loadRealtimeMessages() {
       const q = query(collection(db, "messages"), orderBy("createdAt", "asc"));
       onSnapshot(q, (snapshot) => {
@@ -114,9 +261,22 @@
           const isMe = data.user === currentUser;
           
           msgDiv.className = `message ${isMe ? 'my-msg' : ''}`;
+          
+          let mediaHTML = "";
+          if (data.fileUrl) {
+            if (data.fileType.startsWith('image/')) {
+              mediaHTML = `<img src="${data.fileUrl}" class="media-attachment" />`;
+            } else if (data.fileType.startsWith('video/')) {
+              mediaHTML = `<video src="${data.fileUrl}" controls class="media-attachment"></video>`;
+            } else {
+              mediaHTML = `<a href="${data.fileUrl}" download style="color: #fff; display: block; margin-top: 4px;">📁 Download Attachment</a>`;
+            }
+          }
+
           msgDiv.innerHTML = `
-            <div class="msg-user">${data.user}</div>
+            <div class="msg-user">${data.user} ${data.isHD ? '<small style="color:#00ffcc;">[HD]</small>' : ''}</div>
             <div>${data.text}</div>
+            ${mediaHTML}
           `;
           chatBox.appendChild(msgDiv);
         });
@@ -124,40 +284,21 @@
       });
     }
 
-    // 3. Send Message
-    document.getElementById('send-btn').addEventListener('click', sendMessage);
-    msgInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
-
-    async function sendMessage() {
-      const text = msgInput.value.trim();
-      if (!text) return;
-      msgInput.value = "";
-
-      await addDoc(collection(db, "messages"), {
-        text: text,
-        user: currentUser,
-        createdAt: serverTimestamp()
-      });
-    }
-
-    // 4. Start Voice/Video Call (Jitsi Meet Web API)
+    // 7. Video Call (Jitsi)
     document.getElementById('call-btn').addEventListener('click', () => {
       videoContainer.style.display = "block";
       document.getElementById('call-btn').style.display = "none";
       document.getElementById('end-call-btn').style.display = "block";
 
-      const domain = 'meet.jit.si';
-      const options = {
+      jitsiApi = new JitsiMeetExternalAPI('meet.jit.si', {
         roomName: 'Chat4Now-Global-Room-Call',
         width: '100%',
         height: '100%',
         parentNode: videoContainer,
         userInfo: { displayName: currentUser }
-      };
-      jitsiApi = new JitsiMeetExternalAPI(domain, options);
+      });
     });
 
-    // 5. End Call
     document.getElementById('end-call-btn').addEventListener('click', () => {
       if (jitsiApi) jitsiApi.dispose();
       videoContainer.style.display = "none";
@@ -165,9 +306,11 @@
       document.getElementById('end-call-btn').style.display = "none";
     });
 
-    // 6. Exit
-    document.getElementById('exit-btn').addEventListener('click', () => {
-      if (jitsiApi) jitsiApi.dispose();
+    // 8. Exit & Set Offline
+    document.getElementById('exit-btn').addEventListener('click', async () => {
+      if (currentUser) {
+        await setDoc(doc(db, "users", currentUser), { status: "offline" }, { merge: true });
+      }
       location.reload();
     });
   </script>
