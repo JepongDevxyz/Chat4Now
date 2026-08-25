@@ -3,31 +3,74 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat4Now - Messenger</title>
+  <title>Chat4Now Messenger</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body class="bg-[#1e1f22] text-[#f2f3f5] h-screen flex justify-center items-center overflow-hidden font-sans">
 
-  <!-- LOGIN SCREEN (Telegram/Messenger Modern Splash) -->
+  <!-- 1. LOGIN SCREEN -->
   <div id="login-screen" class="bg-[#2b2d31] p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center border border-[#35373c]">
     <div class="w-20 h-20 bg-gradient-to-tr from-blue-600 to-sky-400 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl text-3xl">
       <i class="fa-solid fa-paper-plane text-white"></i>
     </div>
     <h1 class="text-2xl font-bold mb-2 tracking-wide">Chat4Now</h1>
-    <p class="text-[#949ba4] text-xs mb-8 leading-relaxed">Mabilis, moderno, at ligtas na pakikipag-chat sa mga kaibigan.</p>
+    <p class="text-[#949ba4] text-xs mb-8 leading-relaxed">Mag-sign in para gumawa ng iyong profile at makipag-ugnayan.</p>
     <button id="btn-login" class="w-full bg-[#0088cc] hover:bg-[#0077b3] text-white font-medium py-3 px-4 rounded-xl flex items-center justify-center gap-3 transition shadow-lg text-sm">
       <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-5 h-5 bg-white rounded-full p-0.5" alt="Google">
-      Mag-sign in gamit ang Google
+      Continue with Google
     </button>
   </div>
 
-  <!-- MAIN CHAT INTERFACE (Messenger / Telegram Style) -->
+  <!-- 2. PROFILE SETUP SCREEN -->
+  <div id="profile-setup-screen" class="hidden bg-[#2b2d31] p-6 rounded-2xl shadow-2xl w-full max-w-md border border-[#35373c]">
+    <h2 class="text-xl font-bold mb-1 text-center">Gumawa ng Profile</h2>
+    <p class="text-[#949ba4] text-xs text-center mb-6">Punan ang mga impormasyon bago magpatuloy.</p>
+    
+    <form id="profile-form" class="space-y-4">
+      <div class="flex flex-col items-center mb-4">
+        <label class="cursor-pointer relative group">
+          <img id="preview-avatar" src="https://i.pravatar.cc/100" class="w-20 h-20 rounded-full object-cover border-2 border-[#0088cc]">
+          <div class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-white text-xs">Palitan</div>
+          <input type="file" id="avatar-file" accept="image/*" class="hidden">
+        </label>
+        <span class="text-[11px] text-[#949ba4] mt-2">I-click para mag-upload ng litrato</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-[11px] text-[#949ba4] block mb-1">First Name</label>
+          <input type="text" id="setup-fname" required class="w-full bg-[#1e1f22] text-sm rounded-xl px-3 py-2 border border-[#3f4147] focus:border-[#0088cc] focus:outline-none text-white">
+        </div>
+        <div>
+          <label class="text-[11px] text-[#949ba4] block mb-1">Last Name</label>
+          <input type="text" id="setup-lname" required class="w-full bg-[#1e1f22] text-sm rounded-xl px-3 py-2 border border-[#3f4147] focus:border-[#0088cc] focus:outline-none text-white">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-[11px] text-[#949ba4] block mb-1">Age</label>
+          <input type="number" id="setup-age" required class="w-full bg-[#1e1f22] text-sm rounded-xl px-3 py-2 border border-[#3f4147] focus:border-[#0088cc] focus:outline-none text-white">
+        </div>
+        <div>
+          <label class="text-[11px] text-[#949ba4] block mb-1">Birthday</label>
+          <input type="date" id="setup-bday" required class="w-full bg-[#1e1f22] text-sm rounded-xl px-3 py-2 border border-[#3f4147] focus:border-[#0088cc] focus:outline-none text-white">
+        </div>
+      </div>
+
+      <button type="submit" class="w-full bg-[#0088cc] hover:bg-[#0077b3] text-white font-medium py-3 rounded-xl transition text-sm mt-4 shadow-md">
+        I-save at Magpatuloy
+      </button>
+    </form>
+  </div>
+
+  <!-- 3. MAIN CHAT INTERFACE -->
   <div id="chat-app" class="hidden bg-[#313338] w-full max-w-6xl h-full md:h-[92vh] md:rounded-2xl shadow-2xl overflow-hidden border border-[#3f4147] flex">
     
-    <!-- LEFT SIDEBAR: CHATS LIST -->
+    <!-- LEFT SIDEBAR -->
     <div class="w-full md:w-80 bg-[#2b2d31] border-r border-[#3f4147] flex flex-col">
-      <!-- Profile Header -->
       <div class="p-3 px-4 border-b border-[#3f4147] flex items-center justify-between bg-[#2b2d31]">
         <div class="flex items-center gap-3">
           <div class="relative">
@@ -39,48 +82,54 @@
         <button id="btn-logout" class="text-[#949ba4] hover:text-red-400 text-sm p-2 transition" title="Log out"><i class="fa-solid fa-right-from-bracket"></i></button>
       </div>
 
-      <!-- Search Bar -->
       <div class="p-3 border-b border-[#3f4147]">
         <div class="relative">
-          <input type="text" id="search-friend" placeholder="Maghanap ng kaibigan..." class="w-full bg-[#1e1f22] text-xs rounded-xl pl-9 pr-4 py-2.5 border border-transparent focus:border-[#0088cc] focus:outline-none text-white transition placeholder-[#949ba4]">
+          <input type="text" id="search-friend" placeholder="Maghanap ng user..." class="w-full bg-[#1e1f22] text-xs rounded-xl pl-9 pr-4 py-2.5 border border-transparent focus:border-[#0088cc] focus:outline-none text-white transition placeholder-[#949ba4]">
           <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-[#949ba4] text-xs"></i>
         </div>
       </div>
 
-      <!-- Friends / Active Chats List -->
       <div class="flex-1 overflow-y-auto p-2 space-y-1" id="friends-list">
-        <!-- Dito papasok ang listahan ng users galing Firestore -->
+        <div class="text-center text-[#949ba4] text-xs mt-10 p-4">
+          Wala pang ibang user sa listahan.
+        </div>
       </div>
     </div>
 
-    <!-- RIGHT CHAT WINDOW AREA -->
+    <!-- RIGHT CHAT WINDOW -->
     <div class="hidden md:flex flex-1 flex-col bg-[#313338] relative" id="chat-window-container">
-      <!-- Active Chat Header -->
-      <div class="p-3.5 px-6 border-b border-[#3f4147] flex items-center justify-between bg-[#2b2d31]/80 backdrop-blur-md">
+      <div class="p-3 px-6 border-b border-[#3f4147] flex items-center justify-between bg-[#2b2d31]/80 backdrop-blur-md">
         <div class="flex items-center gap-3">
           <div class="relative">
             <img id="active-chat-avatar" class="w-10 h-10 rounded-full object-cover" src="https://i.pravatar.cc/100" alt="">
             <span id="active-chat-status-dot" class="w-3 h-3 bg-slate-500 border-2 border-[#2b2d31] rounded-full absolute bottom-0 right-0"></span>
           </div>
           <div>
-            <h3 id="active-chat-name" class="font-semibold text-sm text-white">Pumili ng usapan</h3>
+            <h3 id="active-chat-name" class="font-semibold text-sm text-white">Pumili ng kaibigan</h3>
             <span id="active-chat-status-text" class="text-[11px] text-[#949ba4]">Offline</span>
           </div>
         </div>
-      </div>
-
-      <!-- Messages History Box -->
-      <div class="flex-1 overflow-y-auto p-6 space-y-4 flex flex-col" id="messages-box">
-        <div class="m-auto text-center text-[#949ba4] text-xs">
-          <i class="fa-regular fa-comments text-3xl mb-2 opacity-40"></i>
-          <p>I-click ang isang kaibigan sa kaliwa para magsimula mag-chat.</p>
+        <div class="flex items-center gap-2">
+          <button id="btn-voice-call" class="w-9 h-9 bg-[#35373c] hover:bg-[#3f4147] text-[#949ba4] hover:text-white rounded-xl flex items-center justify-center transition" title="Voice Call" disabled><i class="fa-solid fa-phone text-xs"></i></button>
+          <button id="btn-video-call" class="w-9 h-9 bg-[#35373c] hover:bg-[#3f4147] text-[#949ba4] hover:text-white rounded-xl flex items-center justify-center transition" title="Video Call" disabled><i class="fa-solid fa-video text-xs"></i></button>
         </div>
       </div>
 
-      <!-- Message Input Bar (Telegram/Messenger style) -->
-      <form id="chat-form" class="p-3 px-6 bg-[#2b2d31] border-t border-[#3f4147] flex items-center gap-3">
+      <div class="flex-1 overflow-y-auto p-6 space-y-4 flex flex-col" id="messages-box">
+        <div class="m-auto text-center text-[#949ba4] text-xs">
+          <i class="fa-regular fa-comments text-3xl mb-2 opacity-40"></i>
+          <p>Pumili ng kaibigan sa kaliwa para simulan ang pag-usap.</p>
+        </div>
+      </div>
+
+      <!-- Message Input Bar -->
+      <form id="chat-form" class="p-3 px-6 bg-[#2b2d31] border-t border-[#3f4147] flex items-center gap-2">
+        <label for="media-input" class="w-10 h-10 bg-[#35373c] hover:bg-[#3f4147] text-[#949ba4] hover:text-white rounded-xl flex items-center justify-center cursor-pointer transition" title="Attach Photo/Video">
+          <i class="fa-solid fa-paperclip text-sm"></i>
+          <input type="file" id="media-input" accept="image/*,video/*" class="hidden" disabled>
+        </label>
         <input type="text" id="msg-input" placeholder="Mag-type ng mensahe..." class="flex-1 bg-[#1e1f22] text-[#f2f3f5] placeholder-[#949ba4] text-sm rounded-xl px-4 py-3 border border-transparent focus:border-[#0088cc] focus:outline-none transition" disabled>
-        <button type="submit" id="btn-send" class="w-10 h-10 bg-[#0088cc] hover:bg-[#0077b3] text-white rounded-xl flex items-center justify-center transition disabled:opacity-40 disabled:cursor-not-allowed shadow-md" disabled>
+        <button type="submit" id="btn-send" class="w-10 h-10 bg-[#0088cc] hover:bg-[#0077b3] text-white rounded-xl flex items-center justify-center transition disabled:opacity-40 shadow-md" disabled>
           <i class="fa-solid fa-paper-plane text-xs"></i>
         </button>
       </form>
@@ -88,11 +137,60 @@
 
   </div>
 
-  <!-- FIREBASE SCRIPTS -->
+  <!-- MEDIA PREVIEW MODAL (Bago mag-send) -->
+  <div id="media-preview-modal" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4">
+    <div class="bg-[#2b2d31] w-full max-w-lg rounded-2xl overflow-hidden border border-[#3f4147] shadow-2xl flex flex-col">
+      <div class="p-4 border-b border-[#3f4147] flex justify-between items-center">
+        <span class="text-sm font-semibold text-white">Media Preview</span>
+        <button id="btn-cancel-preview" class="text-[#949ba4] hover:text-white transition text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="p-4 flex flex-col items-center bg-[#1e1f22]">
+        <div id="preview-container" class="max-h-72 w-full flex items-center justify-center overflow-hidden rounded-lg mb-4">
+          <!-- Dinamiko ditong ilalagay ang img o video element -->
+        </div>
+
+        <!-- HD Quality Toggle -->
+        <label class="flex items-center gap-3 cursor-pointer bg-[#2b2d31] p-3 rounded-xl border border-[#3f4147] w-full justify-between hover:bg-[#35373c] transition">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-high-definition text-sky-400 text-lg"></i>
+            <div>
+              <p class="text-xs font-semibold text-white">HD Quality</p>
+              <p class="text-[10px] text-[#949ba4]">I-send sa mas malinaw na kalidad</p>
+            </div>
+          </div>
+          <input type="checkbox" id="hd-toggle" class="w-4 h-4 accent-[#0088cc] cursor-pointer">
+        </label>
+      </div>
+
+      <div class="p-4 border-t border-[#3f4147] flex justify-end gap-3">
+        <button id="btn-close-modal" class="px-4 py-2 bg-[#35373c] hover:bg-[#3f4147] text-xs font-medium text-white rounded-xl transition">I-cancel (X)</button>
+        <button id="btn-send-media" class="px-5 py-2 bg-[#0088cc] hover:bg-[#0077b3] text-xs font-medium text-white rounded-xl transition shadow-md flex items-center gap-2">
+          <i class="fa-solid fa-paper-plane"></i> I-send
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CALL MODAL -->
+  <div id="call-modal" class="hidden fixed inset-0 bg-black/80 z-50 flex flex-col items-center justify-center p-4">
+    <div class="bg-[#2b2d31] w-full max-w-2xl rounded-2xl overflow-hidden border border-[#3f4147] shadow-2xl flex flex-col items-center p-6 relative">
+      <h3 id="call-status-title" class="text-lg font-semibold mb-4">Kumokonekta...</h3>
+      <div class="grid grid-cols-2 gap-4 w-full h-72 bg-[#1e1f22] rounded-xl overflow-hidden mb-6 relative">
+        <video id="remote-video" autoplay playsinline class="w-full h-full object-cover bg-black"></video>
+        <video id="local-video" autoplay playsinline muted class="w-full h-full object-cover bg-black absolute bottom-2 right-2 w-32 h-24 rounded-lg border-2 border-[#0088cc] shadow-lg"></video>
+      </div>
+      <button id="btn-end-call" class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-medium transition text-sm flex items-center gap-2 shadow-lg">
+        <i class="fa-solid fa-phone-slash"></i> Ibaba ang Tawag
+      </button>
+    </div>
+  </div>
+
+  <!-- FIREBASE & PEERJS SCRIPTS -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyC3mJ-9-hv85jZiAsGi_kuuZjj_mmjAUmQ",
@@ -110,93 +208,339 @@
     const provider = new GoogleAuthProvider();
 
     let currentUser = null;
+    let currentProfileData = null;
+    let activeChatUser = null;
+    let activeChatId = null;
+    let unsubscribeMessages = null;
+    let uploadedImageBase64 = "https://i.pravatar.cc/100";
+
+    let peer = null;
+    let activeCall = null;
+    let localStream = null;
+
+    let selectedMediaFile = null;
+    let mediaBase64Data = null;
+    let mediaType = null;
 
     document.getElementById('btn-login').addEventListener('click', () => {
-      signInWithPopup(auth, provider).catch(error => alert("Login failed: " + error.message));
+      signInWithPopup(auth, provider).catch(error => alert("Login error: " + error.message));
     });
 
-    document.getElementById('btn-logout').addEventListener('click', () => {
+    document.getElementById('btn-logout').addEventListener('click', async () => {
       if(currentUser) {
-        setDoc(doc(db, "users", currentUser.uid), { isOnline: false }, { merge: true });
+        await setDoc(doc(db, "users", currentUser.uid), { isOnline: false }, { merge: true });
       }
       signOut(auth);
+    });
+
+    document.getElementById('avatar-file').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(uploadEvent) {
+          uploadedImageBase64 = uploadEvent.target.result;
+          document.getElementById('preview-avatar').src = uploadedImageBase64;
+        };
+        reader.readAsDataURL(file);
+      }
     });
 
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         currentUser = user;
         document.getElementById('login-screen').classList.add('hidden');
-        document.getElementById('chat-app').classList.remove('hidden');
 
-        document.getElementById('user-name').innerText = user.displayName;
-        document.getElementById('user-avatar').src = user.photoURL;
+        const userDocRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userDocRef);
 
-        await setDoc(doc(db, "users", user.uid), {
-          uid: user.uid,
-          name: user.displayName,
-          email: user.email,
-          photoURL: user.photoURL,
-          isOnline: true
-        }, { merge: true });
-
-        loadUsers();
+        if (userSnap.exists() && userSnap.data().profileCompleted) {
+          currentProfileData = userSnap.data();
+          initChatApp(currentProfileData);
+        } else {
+          document.getElementById('profile-setup-screen').classList.remove('hidden');
+          if(user.photoURL) {
+            uploadedImageBase64 = user.photoURL;
+            document.getElementById('preview-avatar').src = user.photoURL;
+          }
+          if(user.displayName) {
+            const parts = user.displayName.split(" ");
+            document.getElementById('setup-fname').value = parts[0] || "";
+            document.getElementById('setup-lname').value = parts.slice(1).join(" ") || "";
+          }
+        }
       } else {
         document.getElementById('chat-app').classList.add('hidden');
+        document.getElementById('profile-setup-screen').classList.add('hidden');
         document.getElementById('login-screen').classList.remove('hidden');
+        if(peer) peer.destroy();
       }
     });
 
-    function loadUsers() {
+    document.getElementById('profile-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      currentProfileData = {
+        uid: currentUser.uid,
+        firstName: document.getElementById('setup-fname').value,
+        lastName: document.getElementById('setup-lname').value,
+        fullName: `${document.getElementById('setup-fname').value} ${document.getElementById('setup-lname').value}`,
+        age: document.getElementById('setup-age').value,
+        birthday: document.getElementById('setup-bday').value,
+        photoURL: uploadedImageBase64,
+        isOnline: true,
+        profileCompleted: true
+      };
+
+      await setDoc(doc(db, "users", currentUser.uid), currentProfileData, { merge: true });
+      document.getElementById('profile-setup-screen').classList.add('hidden');
+      initChatApp(currentProfileData);
+    });
+
+    function initChatApp(userData) {
+      document.getElementById('chat-app').classList.remove('hidden');
+      document.getElementById('user-name').innerText = userData.fullName;
+      document.getElementById('user-avatar').src = userData.photoURL;
+      
+      initPeerJS(userData.uid);
+      loadFriendsList();
+    }
+
+    function initPeerJS(userId) {
+      peer = new Peer(userId);
+      peer.on('call', async (call) => {
+        const accept = confirm(`May tumatawag mula kay ${activeChatUser ? activeChatUser.fullName : 'isang kaibigan'}. Sagutin?`);
+        if (accept) {
+          try {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            document.getElementById('local-video').srcObject = localStream;
+            call.answer(localStream);
+            activeCall = call;
+            document.getElementById('call-modal').classList.remove('hidden');
+            document.getElementById('call-status-title').innerText = "Ongoing Call";
+
+            call.on('stream', (remoteStream) => {
+              document.getElementById('remote-video').srcObject = remoteStream;
+            });
+
+            call.on('close', closeCallModal);
+          } catch (err) {
+            alert("Mic/Cam Error: " + err.message);
+          }
+        } else {
+          call.close();
+        }
+      });
+    }
+
+    function loadFriendsList() {
       onSnapshot(collection(db, "users"), (snapshot) => {
         const list = document.getElementById('friends-list');
         list.innerHTML = "";
-
+        let count = 0;
         snapshot.forEach((docSnap) => {
-          const userData = docSnap.data();
-          if(userData.uid !== currentUser.uid) {
-            const isOnline = userData.isOnline;
-            
-            const userCard = document.createElement('div');
-            userCard.className = "flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#35373c] cursor-pointer transition group";
-            userCard.innerHTML = `
+          const friendData = docSnap.data();
+          if(friendData.uid !== currentUser.uid && friendData.profileCompleted) {
+            count++;
+            const isOnline = friendData.isOnline;
+            const card = document.createElement('div');
+            card.className = "flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#35373c] cursor-pointer transition";
+            card.innerHTML = `
               <div class="relative">
-                <img class="w-11 h-11 rounded-full object-cover" src="${userData.photoURL}" alt="">
-                <span class="w-3.5 h-3.5 ${isOnline ? 'bg-emerald-500' : 'bg-[#80848e]'} border-2 border-[#2b2d31] rounded-full absolute bottom-0 right-0"></span>
+                <img class="w-10 h-10 rounded-full object-cover" src="${friendData.photoURL}">
+                <span class="w-3 h-3 ${isOnline ? 'bg-emerald-500' : 'bg-slate-500'} border-2 border-[#2b2d31] rounded-full absolute bottom-0 right-0"></span>
               </div>
               <div class="flex-1 min-w-0">
-                <div class="flex justify-between items-center mb-0.5">
-                  <h4 class="text-xs font-semibold text-white truncate">${userData.name}</h4>
-                </div>
-                <p class="text-[11px] ${isOnline ? 'text-emerald-400 font-medium' : 'text-[#949ba4]'}">${isOnline ? 'Online' : 'Offline'}</p>
+                <h4 class="text-xs font-semibold text-white truncate">${friendData.fullName}</h4>
+                <p class="text-[10px] ${isOnline ? 'text-emerald-400' : 'text-[#949ba4]'}">${isOnline ? 'Online' : 'Offline'}</p>
               </div>
             `;
-            
-            // Pag-click sa user, magse-set active chat
-            userCard.addEventListener('click', () => {
-              document.getElementById('active-chat-name').innerText = userData.name;
-              document.getElementById('active-chat-avatar').src = userData.photoURL;
-              document.getElementById('active-chat-status-text').innerText = isOnline ? 'Online' : 'Offline';
-              document.getElementById('active-chat-status-dot').className = `w-3 h-3 ${isOnline ? 'bg-emerald-500' : 'bg-slate-500'} border-2 border-[#2b2d31] rounded-full absolute bottom-0 right-0`;
-              
-              // I-enable ang message input
-              document.getElementById('msg-input').disabled = false;
-              document.getElementById('btn-send').disabled = false;
-              
-              // Halimbawa ng greeting sa messages box
-              document.getElementById('messages-box').innerHTML = `
-                <div class="flex justify-start">
-                  <div class="bg-[#383a40] text-[#f2f3f5] p-3 px-4 rounded-2xl rounded-tl-sm max-w-xs text-xs leading-relaxed shadow-sm">
-                    Kamusta! Nagsimula na kayong mag-usap ni ${userData.name}.
-                  </div>
-                </div>
-              `;
-            });
-
-            list.appendChild(userCard);
+            card.addEventListener('click', () => selectActiveChat(friendData));
+            list.appendChild(card);
           }
         });
+        if(count === 0) {
+          list.innerHTML = `<div class="text-center text-[#949ba4] text-xs mt-10 p-4">Wala pang ibang user.</div>`;
+        }
       });
     }
+
+    function selectActiveChat(friendData) {
+      activeChatUser = friendData;
+      document.getElementById('active-chat-name').innerText = friendData.fullName;
+      document.getElementById('active-chat-avatar').src = friendData.photoURL;
+      document.getElementById('active-chat-status-text').innerText = friendData.isOnline ? 'Online' : 'Offline';
+      
+      document.getElementById('msg-input').disabled = false;
+      document.getElementById('media-input').disabled = false;
+      document.getElementById('btn-send').disabled = false;
+      document.getElementById('btn-voice-call').disabled = false;
+      document.getElementById('btn-video-call').disabled = false;
+
+      const ids = [currentUser.uid, friendData.uid].sort();
+      activeChatId = `${ids[0]}_${ids[1]}`;
+
+      if(unsubscribeMessages) unsubscribeMessages();
+
+      const msgsRef = collection(db, "chats", activeChatId, "messages");
+      const q = query(msgsRef, orderBy("createdAt", "asc"));
+
+      unsubscribeMessages = onSnapshot(q, (snapshot) => {
+        const box = document.getElementById('messages-box');
+        box.innerHTML = "";
+
+        if(snapshot.empty) {
+          box.innerHTML = `
+            <div class="m-auto text-center text-[#949ba4] text-xs">
+              <i class="fa-regular fa-comments text-3xl mb-2 opacity-40"></i>
+              <p>Magsimula nang magpadala ng mensahe kay ${friendData.fullName}!</p>
+            </div>
+          `;
+          return;
+        }
+
+        snapshot.forEach((docSnap) => {
+          const msg = docSnap.data();
+          const isMe = msg.senderId === currentUser.uid;
+
+          const msgDiv = document.createElement('div');
+          msgDiv.className = `flex ${isMe ? 'justify-end' : 'justify-start'}`;
+
+          let content = '';
+          if(msg.type === 'image') {
+            content = `<img src="${msg.mediaUrl}" class="rounded-xl max-w-xs max-h-60 object-cover cursor-pointer hover:opacity-90 transition shadow-md" onclick="window.open('${msg.mediaUrl}')">`;
+            if(msg.isHD) content += `<span class="text-[9px] bg-black/50 px-1.5 py-0.5 rounded text-sky-300 inline-block mt-1">HD</span>`;
+          } else if(msg.type === 'video') {
+            content = `<video src="${msg.mediaUrl}" controls class="rounded-xl max-w-xs max-h-60 shadow-md"></video>`;
+            if(msg.isHD) content += `<span class="text-[9px] bg-black/50 px-1.5 py-0.5 rounded text-sky-300 inline-block mt-1">HD</span>`;
+          } else {
+            content = msg.text;
+          }
+
+          msgDiv.innerHTML = `
+            <div class="max-w-xs md:max-w-md p-3 px-4 rounded-2xl text-xs leading-relaxed shadow-sm ${isMe ? 'bg-[#0088cc] text-white rounded-tr-sm' : 'bg-[#383a40] text-[#f2f3f5] rounded-tl-sm'}">
+              ${content}
+            </div>
+          `;
+          box.appendChild(msgDiv);
+        });
+
+        box.scrollTop = box.scrollHeight;
+      });
+    }
+
+    // Media File Selection & Preview Handler
+    document.getElementById('media-input').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      selectedMediaFile = file;
+      mediaType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : null);
+
+      if(!mediaType) {
+        alert("Pumili lamang ng Image o Video file.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        mediaBase64Data = event.target.result;
+        const container = document.getElementById('preview-container');
+        container.innerHTML = "";
+
+        if(mediaType === 'image') {
+          container.innerHTML = `<img src="${mediaBase64Data}" class="max-h-64 rounded-lg object-contain">`;
+        } else {
+          container.innerHTML = `<video src="${mediaBase64Data}" controls class="max-h-64 rounded-lg"></video>`;
+        }
+
+        document.getElementById('media-preview-modal').classList.remove('hidden');
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Cancel / Close Preview Modal
+    function closeMediaPreview() {
+      document.getElementById('media-preview-modal').classList.add('hidden');
+      document.getElementById('media-input').value = "";
+      selectedMediaFile = null;
+      mediaBase64Data = null;
+      mediaType = null;
+      document.getElementById('hd-toggle').checked = false;
+    }
+
+    document.getElementById('btn-cancel-preview').addEventListener('click', closeMediaPreview);
+    document.getElementById('btn-close-modal').addEventListener('click', closeMediaPreview);
+
+    // Send Media
+    document.getElementById('btn-send-media').addEventListener('click', async () => {
+      if(!mediaBase64Data || !activeChatId) return;
+
+      const isHD = document.getElementById('hd-toggle').checked;
+
+      await addDoc(collection(db, "chats", activeChatId, "messages"), {
+        type: mediaType,
+        mediaUrl: mediaBase64Data,
+        isHD: isHD,
+        senderId: currentUser.uid,
+        createdAt: serverTimestamp()
+      });
+
+      closeMediaPreview();
+    });
+
+    // Call Functions
+    async function startCall(videoEnabled) {
+      if(!activeChatUser) return;
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: videoEnabled, audio: true });
+        document.getElementById('local-video').srcObject = localStream;
+        document.getElementById('call-modal').classList.remove('hidden');
+        document.getElementById('call-status-title').innerText = `Tinatawagan si ${activeChatUser.fullName}...`;
+
+        const call = peer.call(activeChatUser.uid, localStream);
+        activeCall = call;
+
+        call.on('stream', (remoteStream) => {
+          document.getElementById('remote-video').srcObject = remoteStream;
+          document.getElementById('call-status-title').innerText = "Ongoing Call";
+        });
+
+        call.on('close', closeCallModal);
+      } catch (err) {
+        alert("Mic/Cam Error: " + err.message);
+      }
+    }
+
+    document.getElementById('btn-voice-call').addEventListener('click', () => startCall(false));
+    document.getElementById('btn-video-call').addEventListener('click', () => startCall(true));
+    document.getElementById('btn-end-call').addEventListener('click', () => {
+      if(activeCall) activeCall.close();
+      closeCallModal();
+    });
+
+    function closeCallModal() {
+      document.getElementById('call-modal').classList.add('hidden');
+      if(localStream) localStream.getTracks().forEach(track => track.stop());
+      document.getElementById('local-video').srcObject = null;
+      document.getElementById('remote-video').srcObject = null;
+      activeCall = null;
+    }
+
+    // Text Message Submit
+    document.getElementById('chat-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('msg-input');
+      const text = input.value.trim();
+      if(!text || !activeChatId) return;
+
+      input.value = "";
+
+      await addDoc(collection(db, "chats", activeChatId, "messages"), {
+        type: 'text',
+        text: text,
+        senderId: currentUser.uid,
+        createdAt: serverTimestamp()
+      });
+    });
   </script>
 </body>
 </html>
