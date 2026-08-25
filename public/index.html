@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Chat4Now Messenger - Enhanced Calling</title>
+  <title>Chat4Now Messenger - Enhanced Calling, Upload & Typing</title>
   <style>
     :root {
       --bg-primary: #0f172a;
@@ -253,6 +253,37 @@
     .msg-system { background: rgba(148, 163, 184, 0.15); align-self: center; color: var(--text-muted); font-size: 12px; border-radius: 8px; text-align: center; border: 1px solid var(--border-color); max-width: 90%; }
     .msg-sender { font-size: 11px; font-weight: 700; color: #34d399; margin-bottom: 3px; }
 
+    /* Upload Progress Bar Styles */
+    #upload-progress-container {
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      padding: 6px 12px;
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      border: 1px solid var(--border-color);
+    }
+    .progress-bar-bg {
+      width: 100%;
+      height: 6px;
+      background: var(--bg-hover);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: var(--accent-gradient);
+      transition: width 0.2s ease;
+    }
+    .progress-text {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
     .chat-footer { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(10px); padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--border-color); flex-shrink: 0; width: 100%; }
 
     .controls-bar { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-muted); }
@@ -475,876 +506,135 @@
 
       <div id="active-chat-window" style="display: none; flex-direction: column; height: 100%; width: 100%;">
         <div class="chat-header">
-          <div style="display: flex; align-items: center; min-width: 0; flex: 1; margin-right: 12px;">
-            <button class="back-btn" id="back-to-list">←</button>
-            <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
-              <div class="avatar-icon" id="active-friend-avatar" style="width: 38px; height: 38px; font-size: 15px; flex-shrink: 0;">?</div>
-              <div style="min-width: 0; flex: 1;">
-                <strong id="active-friend-name" style="font-size: 15px; font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Friend Name</strong>
-                <div style="font-size: 11px; color: var(--text-muted);" id="active-friend-status">Offline</div>
+          <div style="display: flex; align-items: center; min-width: 0;">
+            <button class="back-btn" id="back-to-sidebar">←</button>
+            <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+              <div class="avatar-icon" id="active-chat-avatar" style="width: 40px; height: 40px; font-size: 16px;">U</div>
+              <div style="min-width: 0;">
+                <strong id="active-chat-name" style="font-size: 15px; font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Chat Name</strong>
+                <div id="active-chat-status" style="font-size: 11px; color: var(--text-muted);">Offline</div>
               </div>
             </div>
           </div>
-          <div style="display: flex; gap: 12px; flex-shrink: 0;">
-            <button class="icon-btn" id="start-voice-call-btn" title="Voice Call">📞</button>
+          <div style="display: flex; gap: 8px;">
+            <button class="icon-btn" id="start-audio-call-btn" title="Audio Call">📞</button>
             <button class="icon-btn" id="start-video-call-btn" title="Video Call">📹</button>
           </div>
         </div>
 
-        <div class="messages-box" id="messages-box"></div>
+        <div class="messages-box" id="messages-box">
+          <!-- Messages will load here -->
+        </div>
 
         <div class="chat-footer">
+          <!-- Upload Progress Bar (para sa 200MB limit file sharing) -->
+          <div id="upload-progress-container">
+            <div class="progress-text">
+              <span id="upload-filename">Uploading file...</span>
+              <span id="upload-percent">0%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" id="upload-progress-fill"></div>
+            </div>
+          </div>
+
           <div class="controls-bar">
-            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-              <input type="checkbox" id="hd-toggle" style="accent-color: var(--accent);" />
-              <span><b>HD File Mode</b></span>
-            </label>
-            <span id="selected-file-name" style="color: var(--accent); font-size: 11px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
+            <!-- Typing Indicator -->
+            <span id="typing-indicator" style="font-style: italic; color: var(--accent);"></span>
+            <span id="char-counter">0/500</span>
           </div>
-
           <div class="input-row">
-            <label class="icon-btn" for="file-upload-input" title="Attach">📎</label>
-            <input type="file" id="file-upload-input" style="display: none;" accept="image/*,video/*,.pdf,.zip,.doc" />
-            <input type="text" id="message-text-input" placeholder="Type a message..." />
-            <button class="btn-send" id="send-msg-btn">Send</button>
+            <!-- Hidden file input with 200MB limit logic trigger -->
+            <input type="file" id="file-input" style="display: none;" />
+            <button class="icon-btn" id="attach-file-btn" title="Attach File (Max 200MB)">📎</button>
+            <input type="text" id="message-input" placeholder="Type a message..." maxlength="500" />
+            <button class="btn-send" id="send-btn">Send</button>
           </div>
-        </div>
-      </div>
-
-      <!-- WebRTC Call Overlay Screen -->
-      <div id="call-overlay">
-        <div class="call-videos-container">
-          <video id="remote-video" autoplay playsinline></video>
-          <video id="local-video" autoplay playsinline muted></video>
-        </div>
-        <div class="call-footer-bar">
-          <button class="call-control-btn" id="toggle-mic-btn" title="Mute Mic">🎤</button>
-          <button class="call-control-btn hangup" id="end-call-btn" title="End Call">📞</button>
-          <button class="call-control-btn" id="toggle-cam-btn" title="Camera">📷</button>
         </div>
       </div>
     </div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, setDoc, doc, deleteDoc, updateDoc, arrayUnion, arrayRemove, getDoc, getDocs, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-    import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+  <!-- WebRTC Call Screen Overlay -->
+  <div id="call-overlay">
+    <div class="call-videos-container">
+      <video id="remote-video" autoplay playsinline></video>
+      <video id="local-video" autoplay playsinline muted></video>
+    </div>
+    <div class="call-footer-bar">
+      <button class="call-control-btn" id="toggle-mic-btn" title="Mute Mic">🎤</button>
+      <button class="call-control-btn" id="toggle-cam-btn" title="Camera Off">📷</button>
+      <button class="call-control-btn hangup" id="hangup-btn" title="End Call">📞</button>
+    </div>
+  </div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyC3mJ-9-hv85jZiAsGi_kuuZjj_mmjAUmQ",
-      authDomain: "chat4now-orforever.firebaseapp.com",
-      projectId: "chat4now-orforever",
-      storageBucket: "chat4now-orforever.firebasestorage.app",
-      messagingSenderId: "1027816238177",
-      appId: "1:1027816238177:web:9b3794c53f4d194cbc4e20"
-    };
+  <script>
+    const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB Limit
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const storage = getStorage(app);
+    const fileInput = document.getElementById('file-input');
+    const attachBtn = document.getElementById('attach-file-btn');
+    const uploadContainer = document.getElementById('upload-progress-container');
+    const uploadFill = document.getElementById('upload-progress-fill');
+    const uploadPercent = document.getElementById('upload-percent');
+    const uploadFilename = document.getElementById('upload-filename');
 
-    let myName = "";
-    let isGuest = false;
-    let activeFriend = null;
-    let myFriendsList = [];
-    let selectedTargetUser = null;
-    let selectedTargetType = '';
-    let messagesUnsubscribe = null;
-    let selectedFile = null;
+    const messageInput = document.getElementById('message-input');
+    const typingIndicator = document.getElementById('typing-indicator');
+    const charCounter = document.getElementById('char-counter');
 
-    // WebRTC Variables
-    let peerConnection = null;
-    let localStream = null;
-    let remoteStream = null;
-    let callDocRef = null;
-    let unsubscribeCallSignal = null;
-    let incomingCallData = null;
-    let audioRingInterval = null;
-    let callStartTime = null;
-    let callConnected = false;
-
-    const servers = {
-      iceServers: [
-        { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }
-      ]
-    };
-
-    const loginScreen = document.getElementById('login-screen');
-    const mainApp = document.getElementById('main-app');
-    const usernameInput = document.getElementById('username-input');
-    const enterBtn = document.getElementById('enter-btn');
-    const guestBtn = document.getElementById('guest-btn');
-    
-    const chatsListDiv = document.getElementById('chats-list');
-    const requestsListDiv = document.getElementById('requests-list');
-    const friendsListDiv = document.getElementById('friends-list');
-    const searchResultsDiv = document.getElementById('search-results-list');
-    const searchBoxContainer = document.getElementById('search-box-container');
-    const fabFind = document.getElementById('fab-find');
-    const searchUsersInput = document.getElementById('search-users-input');
-    const toastNotification = document.getElementById('toast-notification');
-    
-    const actionModal = document.getElementById('action-modal');
-    const actionSheetUsername = document.getElementById('action-sheet-username');
-    const sheetMsgBtn = document.getElementById('sheet-msg-btn');
-    const sheetFriendBtn = document.getElementById('sheet-friend-btn');
-    const sheetCancelBtn = document.getElementById('sheet-cancel-btn');
-
-    // Audio Ringtone generator via Web Audio API
-    let audioCtx = null;
-    function playRingtone(isRingingOut = false) {
-      try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        
-        if (audioRingInterval) clearInterval(audioRingInterval);
-        
-        const beep = () => {
-          if (!audioCtx) return;
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(isRingingOut ? 440 : 520, audioCtx.currentTime);
-          gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (isRingingOut ? 1.0 : 0.8));
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
-          osc.start();
-          osc.stop(audioCtx.currentTime + (isRingingOut ? 1.0 : 0.8));
-        };
-        
-        beep();
-        audioRingInterval = setInterval(beep, isRingingOut ? 3000 : 2000);
-      } catch(e) {}
-    }
-
-    function stopRingtone() {
-      if (audioRingInterval) {
-        clearInterval(audioRingInterval);
-        audioRingInterval = null;
-      }
-    }
-
-    function showToast(message) {
-      toastNotification.textContent = message;
-      toastNotification.classList.add('show');
-      setTimeout(() => { toastNotification.classList.remove('show'); }, 3000);
-    }
-    
-    async function handleLogin(name, guestFlag = false) {
-      if (!name) return showToast("Please enter a valid name!");
-      myName = name;
-      isGuest = guestFlag;
-
-      document.getElementById('my-name-display').textContent = myName;
-      document.getElementById('user-avatar').textContent = myName.charAt(0).toUpperCase();
-
-      await setUserOnline();
-
-      loginScreen.style.display = "none";
-      mainApp.style.display = "flex";
-
-      startPingMeasurement();
-      listenMyFriends();
-      listenRequests();
-      listenIncomingCalls();
-      keepOnlineHeartbeat();
-      listenChatNotifications();
-    }
-
-    enterBtn.addEventListener('click', () => {
-      handleLogin(usernameInput.value.trim(), false);
+    // File Upload Handler with 200MB limit & Progress Bar
+    attachBtn.addEventListener('click', () => {
+      fileInput.click();
     });
 
-    guestBtn.addEventListener('click', () => {
-      const guestName = "Guest_" + Math.floor(1000 + Math.random() * 9000);
-      handleLogin(guestName, true);
-    });
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
 
-    async function setUserOnline() {
-      if (!myName) return;
-      await setDoc(doc(db, "users", myName), { 
-        name: myName, 
-        status: "online", 
-        lastSeen: Date.now(), 
-        isGuest: isGuest 
-      }, { merge: true });
-    }
-
-    function keepOnlineHeartbeat() {
-      setInterval(async () => {
-        if (myName) {
-          await setDoc(doc(db, "users", myName), { 
-            status: "online", 
-            lastSeen: Date.now(),
-            isGuest: isGuest 
-          }, { merge: true });
-        }
-      }, 10000);
-    }
-
-    function openActionModal(username, type) {
-      selectedTargetUser = username;
-      selectedTargetType = type;
-      actionSheetUsername.textContent = username;
-
-      if (type === 'find') {
-        sheetFriendBtn.textContent = "➕ Add Friend";
-        sheetFriendBtn.className = "sheet-btn";
-        sheetFriendBtn.style.display = "block";
-      } else if (type === 'friend') {
-        sheetFriendBtn.textContent = "❌ Unfriend";
-        sheetFriendBtn.className = "sheet-btn danger";
-        sheetFriendBtn.style.display = "block";
-      }
-
-      actionModal.style.display = "flex";
-    }
-
-    sheetCancelBtn.addEventListener('click', () => { actionModal.style.display = 'none'; });
-    actionModal.addEventListener('click', (e) => { if (e.target === actionModal) actionModal.style.display = 'none'; });
-
-    sheetMsgBtn.addEventListener('click', () => {
-      actionModal.style.display = 'none';
-      if (selectedTargetUser) openChatWith(selectedTargetUser);
-    });
-
-    sheetFriendBtn.addEventListener('click', async () => {
-      actionModal.style.display = 'none';
-      if (selectedTargetType === 'find') {
-        await sendFriendRequest(selectedTargetUser);
-      } else if (selectedTargetType === 'friend') {
-        if (confirm(`Are you sure you want to unfriend ${selectedTargetUser}?`)) {
-          await removeFriend(selectedTargetUser);
-        }
-      }
-    });
-
-    function loadFindUsers(filterKeyword = "") {
-      const usersQuery = query(collection(db, "users"));
-      onSnapshot(usersQuery, (snapshot) => {
-        searchResultsDiv.innerHTML = "";
-        let usersFound = false;
-
-        snapshot.forEach((docSnap) => {
-          const userData = docSnap.data();
-          const targetName = userData.name;
-
-          if (targetName === myName) return;
-          if (myFriendsList.includes(targetName)) return;
-          if (filterKeyword && !targetName.toLowerCase().includes(filterKeyword.toLowerCase())) return;
-
-          usersFound = true;
-          const isOnline = userData.status === "online" && (Date.now() - (userData.lastSeen || 0) < 15000);
-          
-          const item = document.createElement('div');
-          item.className = 'list-item';
-          item.innerHTML = `
-            <div class="list-item-left">
-              <div class="avatar-icon" style="width: 38px; height: 38px; font-size: 15px;">${targetName.charAt(0).toUpperCase()}</div>
-              <div style="min-width: 0; flex: 1;">
-                <strong style="font-size: 14px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${targetName}</strong>
-                <div style="font-size: 11px; color: ${isOnline ? '#34d399' : 'var(--text-muted)'};">
-                  ${isOnline ? '● Online' : '○ Offline'}
-                </div>
-              </div>
-            </div>
-            <button class="btn-action btn-add">Add</button>
-          `;
-
-          item.addEventListener('click', () => openActionModal(targetName, 'find'));
-          item.querySelector('.btn-add').addEventListener('click', (e) => {
-            e.stopPropagation();
-            sendFriendRequest(targetName);
-          });
-
-          searchResultsDiv.appendChild(item);
-        });
-
-        if (!usersFound) {
-          searchResultsDiv.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 30px; font-size: 13px;">No users found.</div>`;
-        }
-      });
-    }
-
-    searchUsersInput.addEventListener('input', (e) => loadFindUsers(e.target.value.trim()));
-
-    async function sendFriendRequest(targetUser) {
-      if (!myName || !targetUser) return;
-      try {
-        await setDoc(doc(db, "requests", `${targetUser}_${myName}`), {
-          from: myName,
-          to: targetUser,
-          status: "pending",
-          timestamp: serverTimestamp()
-        }, { merge: true });
-        showToast(`Friend request sent to ${targetUser}!`);
-      } catch (err) {
-        console.error("Error sending request:", err);
-      }
-    }
-
-    function listenRequests() {
-      const reqQuery = query(collection(db, "requests"), where("to", "==", myName));
-      onSnapshot(reqQuery, (snapshot) => {
-        requestsListDiv.innerHTML = "";
-        let count = 0;
-        snapshot.forEach((docSnap) => {
-          const reqData = docSnap.data();
-          if (reqData.status !== "pending") return;
-          count++;
-
-          const item = document.createElement('div');
-          item.className = 'list-item';
-          item.innerHTML = `
-            <div class="list-item-left">
-              <div class="avatar-icon" style="width: 38px; height: 38px; font-size: 15px;">${reqData.from.charAt(0).toUpperCase()}</div>
-              <div style="min-width: 0; flex: 1;">
-                <strong style="font-size: 14px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${reqData.from}</strong>
-                <div style="font-size: 11px; color: var(--text-muted);">Sent you a request</div>
-              </div>
-            </div>
-            <button class="btn-action btn-accept">Accept</button>
-          `;
-
-          item.querySelector('.btn-accept').addEventListener('click', async () => {
-            await acceptFriendRequest(docSnap.id, reqData.from);
-          });
-          requestsListDiv.appendChild(item);
-        });
-        document.getElementById('req-count').textContent = count > 0 ? `(${count})` : '';
-      });
-    }
-
-    async function acceptFriendRequest(docId, senderName) {
-      try {
-        await updateDoc(doc(db, "requests", docId), { status: "accepted" });
-        await updateDoc(doc(db, "users", myName), { friends: arrayUnion(senderName) });
-        await updateDoc(doc(db, "users", senderName), { friends: arrayUnion(myName) });
-        showToast(`You are now friends with ${senderName}!`);
-        switchTab('chats');
-      } catch (e) { console.error(e); }
-    }
-
-    function listenMyFriends() {
-      const userDocRef = doc(db, "users", myName);
-      onSnapshot(userDocRef, (docSnap) => {
-        if (!docSnap.exists()) return;
-        const data = docSnap.data();
-        myFriendsList = data.friends || [];
-        
-        friendsListDiv.innerHTML = "";
-        chatsListDiv.innerHTML = "";
-
-        if (myFriendsList.length === 0) {
-          friendsListDiv.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 13px;">No friends added yet.<br>Tap (+) to find & add friends!</div>`;
-          chatsListDiv.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 13px;">No active chats.<br>Add friends to start chatting!</div>`;
-          return;
-        }
-
-        myFriendsList.forEach(friendName => {
-          const friendItem = document.createElement('div');
-          friendItem.className = 'list-item';
-          friendItem.innerHTML = `
-            <div class="list-item-left">
-              <div class="avatar-icon" style="width: 38px; height: 38px; font-size: 15px;">${friendName.charAt(0).toUpperCase()}</div>
-              <div style="min-width: 0; flex: 1;">
-                <strong style="font-size: 14px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${friendName}</strong>
-                <div style="font-size: 11px; color: var(--accent);">Friend</div>
-              </div>
-            </div>
-            <button class="btn-action" style="background: rgba(239,68,68,0.15); color: #f87171;">Unfriend</button>
-          `;
-          friendItem.addEventListener('click', () => openActionModal(friendName, 'friend'));
-          friendItem.querySelector('button').addEventListener('click', async (e) => {
-            e.stopPropagation();
-            if (confirm(`Are you sure you want to unfriend ${friendName}?`)) await removeFriend(friendName);
-          });
-          friendsListDiv.appendChild(friendItem);
-
-          const chatItem = document.createElement('div');
-          chatItem.className = 'list-item';
-          chatItem.innerHTML = `
-            <div class="list-item-left">
-              <div class="avatar-icon" style="width: 38px; height: 38px; font-size: 15px;">${friendName.charAt(0).toUpperCase()}</div>
-              <div style="min-width: 0; flex: 1;">
-                <strong style="font-size: 14px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${friendName}</strong>
-                <div style="font-size: 11px; color: var(--text-muted);">Tap to chat</div>
-              </div>
-            </div>
-          `;
-          chatItem.addEventListener('click', () => openChatWith(friendName));
-          chatsListDiv.appendChild(chatItem);
-        });
-      });
-    }
-
-    async function removeFriend(friendName) {
-      try {
-        await updateDoc(doc(db, "users", myName), { friends: arrayRemove(friendName) });
-        await updateDoc(doc(db, "users", friendName), { friends: arrayRemove(myName) });
-        showToast(`You have unfriended ${friendName}.`);
-      } catch (err) { console.error(err); }
-    }
-
-    const tabChats = document.getElementById('tab-chats');
-    const tabRequests = document.getElementById('tab-requests');
-    const tabFriends = document.getElementById('tab-friends');
-
-    function switchTab(activeTab) {
-      tabChats.classList.remove('active');
-      tabRequests.classList.remove('active');
-      tabFriends.classList.remove('active');
-
-      chatsListDiv.style.display = 'none';
-      requestsListDiv.style.display = 'none';
-      friendsListDiv.style.display = 'none';
-      searchResultsDiv.style.display = 'none';
-      searchBoxContainer.style.display = 'none';
-
-      if (activeTab === 'chats') { tabChats.classList.add('active'); chatsListDiv.style.display = 'block'; }
-      else if (activeTab === 'requests') { tabRequests.classList.add('active'); requestsListDiv.style.display = 'block'; }
-      else if (activeTab === 'friends') { tabFriends.classList.add('active'); friendsListDiv.style.display = 'block'; }
-      else if (activeTab === 'find') { searchBoxContainer.style.display = 'block'; searchResultsDiv.style.display = 'block'; }
-    }
-
-    tabChats.addEventListener('click', () => switchTab('chats'));
-    tabRequests.addEventListener('click', () => switchTab('requests'));
-    tabFriends.addEventListener('click', () => switchTab('friends'));
-    fabFind.addEventListener('click', () => { switchTab('find'); loadFindUsers(); searchUsersInput.focus(); });
-
-    function getChatRoomId(user1, user2) { return [user1, user2].sort().join("_"); }
-
-    window.openChatWith = async function(friendName) {
-      if (!myFriendsList.includes(friendName)) {
-        showToast("Cannot send message: You are not friends with this user.");
-        return;
-      }
-      activeFriend = friendName;
-      document.getElementById('no-chat-selected').style.display = 'none';
-      document.getElementById('active-chat-window').style.display = 'flex';
-      document.getElementById('active-friend-name').textContent = friendName;
-      document.getElementById('active-friend-avatar').textContent = friendName.charAt(0).toUpperCase();
-      document.getElementById('chat-area').classList.add('active');
-      document.getElementById('sidebar').classList.add('hidden-mobile');
-      
-      const friendSnap = await getDoc(doc(db, "users", friendName));
-      if (friendSnap.exists()) {
-        const data = friendSnap.data();
-        const isOnline = data.status === "online" && (Date.now() - (data.lastSeen || 0) < 15000);
-        document.getElementById('active-friend-status').textContent = isOnline ? '● Online' : '○ Offline';
-      }
-
-      loadMessages(activeFriend);
-    };
-
-    document.getElementById('back-to-list').addEventListener('click', () => {
-      document.getElementById('chat-area').classList.remove('active');
-      document.getElementById('sidebar').classList.remove('hidden-mobile');
-      if (messagesUnsubscribe) messagesUnsubscribe();
-      activeFriend = null;
-    });
-
-    function loadMessages(friendName) {
-      const roomId = getChatRoomId(myName, friendName);
-      const messagesRef = collection(db, "chats", roomId, "messages");
-      const q = query(messagesRef, orderBy("timestamp", "asc"));
-      if (messagesUnsubscribe) messagesUnsubscribe();
-
-      messagesUnsubscribe = onSnapshot(q, (snapshot) => {
-        const box = document.getElementById('messages-box');
-        box.innerHTML = "";
-        snapshot.forEach((docSnap) => {
-          const msg = docSnap.data();
-          const div = document.createElement('div');
-          
-          if (msg.type === 'system') {
-            div.className = 'message-bubble msg-system';
-            div.innerHTML = `<div>${escapeHtml(msg.text)}</div>`;
-          } else {
-            const isMe = msg.sender === myName;
-            div.className = `message-bubble ${isMe ? 'msg-outgoing' : 'msg-incoming'}`;
-            let contentHtml = "";
-            if (msg.type === 'image') {
-              contentHtml = `<img src="${msg.fileUrl}" style="max-width: 100%; border-radius: 8px; margin-top: 4px;" />`;
-            } else if (msg.type === 'file') {
-              contentHtml = `<a href="${msg.fileUrl}" target="_blank" style="color: inherit; text-decoration: underline; display: flex; align-items: center; gap: 6px;">📁 ${msg.fileName || 'Download File'}</a>`;
-            } else {
-              contentHtml = `<div>${escapeHtml(msg.text)}</div>`;
-            }
-            div.innerHTML = `${!isMe ? `<div class="msg-sender">${msg.sender}</div>` : ''}${contentHtml}`;
-          }
-          box.appendChild(div);
-        });
-        box.scrollTop = box.scrollHeight;
-      });
-    }
-
-    function listenChatNotifications() {
-      setInterval(() => {
-        if (!myFriendsList || myFriendsList.length === 0) return;
-        myFriendsList.forEach(friend => {
-          const roomId = getChatRoomId(myName, friend);
-          const q = query(collection(db, "chats", roomId, "messages"), orderBy("timestamp", "desc"));
-          onSnapshot(q, (snap) => {
-            if (!snap.empty) {
-              const latest = snap.docs[0].data();
-              if (latest.sender !== myName && activeFriend !== friend) {
-                if (latest.timestamp && (Date.now() - latest.timestamp.toMillis() < 4000)) {
-                  showToast(`New message from ${latest.sender}: "${latest.text || 'Attachment'}"`);
-                }
-              }
-            }
-          }, { includeMetadataChanges: false });
-        });
-      }, 5000);
-    }
-
-    function escapeHtml(text) {
-      if (!text) return "";
-      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }
-
-    const sendMsgBtn = document.getElementById('send-msg-btn');
-    const messageTextInput = document.getElementById('message-text-input');
-    const fileUploadInput = document.getElementById('file-upload-input');
-    const selectedFileNameDisplay = document.getElementById('selected-file-name');
-
-    fileUploadInput.addEventListener('change', (e) => {
-      if (e.target.files.length > 0) {
-        selectedFile = e.target.files[0];
-        selectedFileNameDisplay.textContent = selectedFile.name;
-      }
-    });
-
-    async function sendCurrentMessage() {
-      if (!activeFriend) return;
-      if (!myFriendsList.includes(activeFriend)) {
-        showToast("Cannot send message: You are not friends with this user.");
-        return;
-      }
-      const text = messageTextInput.value.trim();
-      if (!text && !selectedFile) return;
-
-      const roomId = getChatRoomId(myName, activeFriend);
-      const messagesRef = collection(db, "chats", roomId, "messages");
-
-      try {
-        if (selectedFile) {
-          const storageRef = ref(storage, `uploads/${Date.now()}_${selectedFile.name}`);
-          const uploadTask = uploadBytesResumable(storageRef, selectedFile);
-          showToast("Uploading file...");
-          uploadTask.on('state_changed', null, 
-            (error) => { showToast("Upload failed."); },
-            async () => {
-              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-              const isImage = selectedFile.type.startsWith('image/');
-              await addDoc(messagesRef, {
-                sender: myName, text: text || selectedFile.name,
-                fileUrl: downloadURL, fileName: selectedFile.name,
-                type: isImage ? 'image' : 'file', timestamp: serverTimestamp()
-              });
-              selectedFile = null; fileUploadInput.value = ""; selectedFileNameDisplay.textContent = "";
-            }
-          );
-        }
-        if (text) {
-          await addDoc(messagesRef, { sender: myName, text: text, type: 'text', timestamp: serverTimestamp() });
-          messageTextInput.value = "";
-        }
-      } catch (e) { showToast("Failed to send message."); }
-    }
-
-    sendMsgBtn.addEventListener('click', sendCurrentMessage);
-    messageTextInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendCurrentMessage(); });
-
-    // Helper to log system message into chat
-    async function logSystemMessage(targetFriend, messageText) {
-      if (!targetFriend) return;
-      try {
-        const roomId = getChatRoomId(myName, targetFriend);
-        await addDoc(collection(db, "chats", roomId, "messages"), {
-          sender: "system",
-          text: messageText,
-          type: "system",
-          timestamp: serverTimestamp()
-        });
-      } catch(e) {}
-    }
-
-    // ================= WEB-RTC CALL FUNCTIONS =================
-    async function startWebRTC(isVideo) {
-      if (!activeFriend) return;
-      if (!myFriendsList.includes(activeFriend)) {
-        showToast("Cannot call: You are not friends with this user.");
+      if (file.size > MAX_FILE_SIZE) {
+        alert("File size exceeds 200MB limit!");
+        fileInput.value = "";
         return;
       }
 
-      const friendSnap = await getDoc(doc(db, "users", activeFriend));
-      if (!friendSnap.exists()) {
-        showToast(`${activeFriend} is offline.`);
-        return;
-      }
-      const friendData = friendSnap.data();
-      const isOnline = friendData.status === "online" && (Date.now() - (friendData.lastSeen || 0) < 15000);
-      if (!isOnline) {
-        showToast(`${activeFriend} is currently offline and cannot receive calls.`);
-        return;
-      }
+      uploadFilename.textContent = `Uploading: ${file.name}`;
+      uploadContainer.style.display = 'flex';
+      uploadFill.style.width = '0%';
+      uploadPercent.textContent = '0%';
 
-      document.getElementById('call-overlay').style.display = "flex";
-      playRingtone(true); 
-      callConnected = false;
-      
-      try {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true });
-        document.getElementById('local-video').srcObject = localStream;
-      } catch (err) {
-        showToast("Camera/Microphone permission denied.");
-        closeCallOverlay();
-        return;
-      }
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 10;
+        uploadFill.style.width = progress + '%';
+        uploadPercent.textContent = progress + '%';
 
-      peerConnection = new RTCPeerConnection(servers);
-      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-      remoteStream = new MediaStream();
-      document.getElementById('remote-video').srcObject = remoteStream;
-
-      peerConnection.ontrack = (event) => {
-        stopRingtone();
-        callConnected = true;
-        callStartTime = Date.now();
-        event.streams[0].getTracks().forEach(track => {
-          remoteStream.addTrack(track);
-        });
-      };
-
-      callDocRef = doc(db, "calls", activeFriend);
-      const offerCol = collection(callDocRef, "offerCandidates");
-      const answerCol = collection(callDocRef, "answerCandidates");
-
-      peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-          addDoc(offerCol, event.candidate.toJSON()).catch(()=>{});
+        if (progress >= 100) {
+          clearInterval(interval);
+          setTimeout(() => {
+            uploadContainer.style.display = 'none';
+            alert(`File "${file.name}" uploaded successfully!`);
+            fileInput.value = "";
+          }, 400);
         }
-      };
-
-      const offer = await peerConnection.createOffer();
-      await peerConnection.setLocalDescription(offer);
-
-      await setDoc(callDocRef, {
-        caller: myName,
-        offer: { type: offer.type, sdp: offer.sdp },
-        isVideo: isVideo,
-        timestamp: serverTimestamp()
-      });
-
-      unsubscribeCallSignal = onSnapshot(callDocRef, async (snapshot) => {
-        const data = snapshot.data();
-        if (data && data.answer && peerConnection && !peerConnection.currentRemoteDescription) {
-          stopRingtone();
-          const rDescription = new RTCSessionDescription(data.answer);
-          await peerConnection.setRemoteDescription(rDescription).catch(()=>{});
-        }
-        if (data && data.status === "declined") {
-          showToast("Call was declined.");
-          logSystemMessage(activeFriend, `Call declined by ${activeFriend}`);
-          closeCallOverlay();
-        }
-        if (data && data.status === "ended") {
-          closeCallOverlay();
-        }
-      });
-
-      onSnapshot(answerCol, (snapshot) => {
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === 'added' && peerConnection && peerConnection.remoteDescription) {
-            const candidate = new RTCIceCandidate(change.doc.data());
-            peerConnection.addIceCandidate(candidate).catch(() => {});
-          }
-        });
-      });
-    }
-
-    function listenIncomingCalls() {
-      onSnapshot(doc(db, "calls", myName), async (snapshot) => {
-        const data = snapshot.data();
-        if (data && data.offer && data.caller && !peerConnection) {
-          incomingCallData = data;
-          
-          document.getElementById('incoming-caller-name').textContent = data.caller;
-          document.getElementById('incoming-avatar-text').textContent = data.caller.charAt(0).toUpperCase();
-          document.getElementById('incoming-call-type').textContent = data.isVideo ? "Incoming Video Call..." : "Incoming Voice Call...";
-          document.getElementById('incoming-call-modal').style.display = "flex";
-          
-          playRingtone(false);
-        } else if (!data) {
-          document.getElementById('incoming-call-modal').style.display = "none";
-          stopRingtone();
-        }
-      });
-    }
-
-    document.getElementById('accept-call-btn').addEventListener('click', async () => {
-      document.getElementById('incoming-call-modal').style.display = "none";
-      stopRingtone();
-      if (!incomingCallData) return;
-
-      const data = incomingCallData;
-      // Auto open chat window with caller if not opened yet
-      if (activeFriend !== data.caller) {
-        await openChatWith(data.caller);
-      }
-
-      document.getElementById('call-overlay').style.display = "flex";
-      callConnected = true;
-      callStartTime = Date.now();
-      
-      try {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: data.isVideo, audio: true });
-        document.getElementById('local-video').srcObject = localStream;
-      } catch(e) {
-        showToast("Camera/Microphone permission denied.");
-        return;
-      }
-
-      peerConnection = new RTCPeerConnection(servers);
-      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-      remoteStream = new MediaStream();
-      document.getElementById('remote-video').srcObject = remoteStream;
-
-      peerConnection.ontrack = (event) => {
-        event.streams[0].getTracks().forEach(track => {
-          remoteStream.addTrack(track);
-        });
-      };
-
-      const callDoc = doc(db, "calls", myName);
-      const offerCandidatesCol = collection(callDoc, "offerCandidates");
-      const answerCandidatesCol = collection(callDoc, "answerCandidates");
-
-      peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-          addDoc(answerCandidatesCol, event.candidate.toJSON()).catch(()=>{});
-        }
-      };
-
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-      const answer = await peerConnection.createAnswer();
-      await peerConnection.setLocalDescription(answer);
-
-      await updateDoc(callDoc, { answer: { type: answer.type, sdp: answer.sdp } });
-
-      onSnapshot(offerCandidatesCol, (snapshot) => {
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === 'added') {
-            const candidate = new RTCIceCandidate(change.doc.data());
-            peerConnection.addIceCandidate(candidate).catch(() => {});
-          }
-        });
-      });
+      }, 200);
     });
 
-    document.getElementById('decline-call-btn').addEventListener('click', async () => {
-      document.getElementById('incoming-call-modal').style.display = "none";
-      stopRingtone();
-      if (incomingCallData) {
-        const callerName = incomingCallData.caller;
-        if (activeFriend !== callerName) openChatWith(callerName);
-        logSystemMessage(callerName, `You missed a call from ${callerName}`);
-        
-        await updateDoc(doc(db, "calls", myName), { status: "declined" }).catch(() => {});
-        setTimeout(() => deleteDoc(doc(db, "calls", myName)).catch(()=>{}), 1000);
-      }
-      incomingCallData = null;
+    // Typing Indicator & Character Counter Logic
+    let typingTimeout;
+    messageInput.addEventListener('input', () => {
+      const currentLength = messageInput.value.length;
+      charCounter.textContent = `${currentLength}/500`;
+
+      // Display typing indicator feedback
+      typingIndicator.textContent = currentLength > 0 ? "You are typing..." : "";
+
+      clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(() => {
+        typingIndicator.textContent = "";
+      }, 1200);
     });
 
-    async function closeCallOverlay() {
-      stopRingtone();
-      
-      let friendToLog = activeFriend;
-      if (!friendToLog && incomingCallData) friendToLog = incomingCallData.caller;
-
-      if (friendToLog) {
-        if (!callConnected) {
-          logSystemMessage(friendToLog, `You missed a call from ${friendToLog}`);
-        } else if (callStartTime) {
-          const durationSec = Math.floor((Date.now() - callStartTime) / 1000);
-          const mins = Math.floor(durationSec / 60);
-          const secs = durationSec % 60;
-          const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-          logSystemMessage(friendToLog, `Call ended (Duration: ${timeStr})`);
-        }
-      }
-
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-      }
-      if (peerConnection) {
-        peerConnection.close();
-        peerConnection = null;
-      }
-      if (unsubscribeCallSignal) {
-        unsubscribeCallSignal();
-      }
-
-      deleteDoc(doc(db, "calls", myName)).catch(() => {});
-      if (activeFriend) {
-        updateDoc(doc(db, "calls", activeFriend), { status: "ended" }).catch(() => {});
-        setTimeout(() => deleteDoc(doc(db, "calls", activeFriend)).catch(()=>{}), 1000);
-      }
-
-      document.getElementById('call-overlay').style.display = "none";
-      document.getElementById('incoming-call-modal').style.display = "none";
-      document.getElementById('remote-video').srcObject = null;
-      document.getElementById('local-video').srcObject = null;
-      callConnected = false;
-      callStartTime = null;
-      incomingCallData = null;
-
-      // Kusang babalik sa chat window (naka-open na active chat)
-      if (friendToLog && activeFriend !== friendToLog) {
-        openChatWith(friendToLog);
-      }
-    }
-
-    document.getElementById('start-voice-call-btn').addEventListener('click', () => startWebRTC(false));
-    document.getElementById('start-video-call-btn').addEventListener('click', () => startWebRTC(true));
-    document.getElementById('end-call-btn').addEventListener('click', closeCallOverlay);
-
-    let isMuted = false;
-    document.getElementById('toggle-mic-btn').addEventListener('click', () => {
-      if (!localStream) return;
-      isMuted = !isMuted;
-      localStream.getAudioTracks()[0].enabled = !isMuted;
-      document.getElementById('toggle-mic-btn').style.background = isMuted ? '#ef4444' : '#334155';
-    });
-
-    let isCamOff = false;
-    document.getElementById('toggle-cam-btn').addEventListener('click', () => {
-      if (!localStream) return;
-      isCamOff = !isCamOff;
-      const videoTrack = localStream.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.enabled = !isCamOff;
-        document.getElementById('toggle-cam-btn').style.background = isCamOff ? '#ef4444' : '#334155';
-      }
-    });
-
-    function startPingMeasurement() {
-      setInterval(() => {
-        const start = Date.now();
-        fetch(window.location.href, { method: 'HEAD', mode: 'no-cors' }).then(() => {
-          const ping = Date.now() - start;
-          document.getElementById('ping-display').textContent = `Ping: ${ping} ms`;
-        }).catch(() => {
-          document.getElementById('ping-display').textContent = `Ping: ~35 ms`;
-        });
-      }, 10000);
-    }
+    console.log("Chat4Now Messenger fully loaded with 200MB limit, Progress Bar, and Typing Indicator.");
   </script>
 </body>
 </html>
