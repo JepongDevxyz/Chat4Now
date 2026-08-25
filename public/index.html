@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Chat4Now Messenger</title>
+  <!-- Jitsi Meet External API -->
+  <script src="https://meet.jit.si/external_api.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
     
@@ -127,7 +129,7 @@
     }
 
     #call-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #111b21; z-index: 100; display: none; flex-direction: column; }
-    #call-container-iframe { width: 100%; height: 100%; border: none; }
+    #jitsi-container { width: 100%; height: calc(100% - 50px); }
   </style>
 </head>
 <body>
@@ -218,13 +220,13 @@
         </div>
       </div>
 
-      <!-- Call Overlay (Audio & Video) -->
+      <!-- Native Jitsi Call Overlay -->
       <div id="call-overlay">
         <div style="padding: 10px 16px; background: #202c33; display: flex; justify-content: space-between; align-items: center; height: 50px;">
           <span id="call-type-title">Call</span>
           <button class="btn-action" style="background: #e53935; color: #fff;" id="end-call-btn">End Call</button>
         </div>
-        <div id="call-wrapper" style="flex: 1; width: 100%; height: calc(100% - 50px);"></div>
+        <div id="jitsi-container"></div>
       </div>
 
     </div>
@@ -254,8 +256,8 @@
     let selectedFile = null;
     let myFriendsList = [];
     let myRequestsList = [];
+    let jitsiApi = null;
 
-    // Voice Recorder Variables
     let mediaRecorder = null;
     let audioChunks = [];
     let isRecording = false;
@@ -581,7 +583,7 @@
       }
     }
 
-    // 🎙️ VOICE MESSAGE RECORDING LOGIC
+    // Direct Base64 Voice Recorder (Bypasses Storage Rules)
     recordAudioBtn.addEventListener('click', async () => {
       if (!isRecording) {
         try {
@@ -592,7 +594,28 @@
           mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
           mediaRecorder.onstop = async () => {
             const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-            await sendVoiceMessage(audioBlob);
+            
+            selectedFileName.textContent = "Sending voice...";
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
+            reader.onloadend = async () => {
+              const base64Audio = reader.result;
+              const chatId = [myName, activeFriend].sort().join("_");
+
+              try {
+                await addDoc(collection(db, "chats", chatId, "messages"), {
+                  sender: myName,
+                  text: "🎤 Voice Message",
+                  fileUrl: base64Audio,
+                  fileType: "audio/webm",
+                  fileName: "VoiceNote.webm",
+                  createdAt: serverTimestamp()
+                });
+              } catch (e) {
+                alert("Failed to send voice: " + e.message);
+              }
+              selectedFileName.textContent = "";
+            };
           };
 
           mediaRecorder.start();
@@ -610,53 +633,42 @@
       }
     });
 
-    async function sendVoiceMessage(blob) {
-      if (!activeFriend) return;
-      selectedFileName.textContent = "Sending voice note...";
-      const chatId = [myName, activeFriend].sort().join("_");
+    // Native Jitsi Calls (Audio & Video)
+    function startCall(isAudioOnly) {
+      document.getElementById('call-overlay').style.display = 'flex';
+      document.getElementById('call-type-title').textContent = isAudioOnly ? "📞 Voice Call" : "📹 Video Call";
       
-      try {
-        const fileRef = ref(storage, `voice_notes/${Date.now()}.webm`);
-        const uploadTask = await uploadBytesResumable(fileRef, blob);
-        const fileUrl = await getDownloadURL(uploadTask.ref);
+      const roomName = `Chat4Now_Call_${[myName, activeFriend].sort().join("_")}`;
+      const domain = "meet.jit.si";
+      
+      const options = {
+        roomName: roomName,
+        width: '100%',
+        height: '100%',
+        parentNode: document.getElementById('jitsi-container'),
+        userInfo: {
+          displayName: myName
+        },
+        configOverwrite: {
+          startWithVideoMuted: isAudioOnly,
+          startWithAudioMuted: false,
+          disableDeepLinking: true
+        }
+      };
 
-        await addDoc(collection(db, "chats", chatId, "messages"), {
-          sender: myName,
-          text: "🎤 Voice Message",
-          fileUrl: fileUrl,
-          fileType: "audio/webm",
-          fileName: "VoiceNote.webm",
-          createdAt: serverTimestamp()
-        });
-      } catch (e) {
-        alert("Failed to send voice message: " + e.message);
-      }
-      selectedFileName.textContent = "";
+      if (jitsiApi) jitsiApi.dispose();
+      jitsiApi = new JitsiMeetExternalAPI(domain, options);
     }
 
-    // 📞 VOICE CALL INTEGRATION
-    document.getElementById('start-voice-call-btn').addEventListener('click', () => {
-      document.getElementById('call-overlay').style.display = 'flex';
-      document.getElementById('call-type-title').textContent = "📞 Voice Call";
-      const roomName = `Chat4Now_Call_${[myName, activeFriend].sort().join("_")}`;
-      
-      const wrapper = document.getElementById('call-wrapper');
-      wrapper.innerHTML = `<iframe src="https://meet.ffmuc.net/${roomName}#config.startWithVideoMuted=true&userInfo.displayName=%22${encodeURIComponent(myName)}%22" allow="microphone; display-capture; autoplay" id="call-container-iframe"></iframe>`;
-    });
-
-    // 📹 VIDEO CALL INTEGRATION
-    document.getElementById('start-video-call-btn').addEventListener('click', () => {
-      document.getElementById('call-overlay').style.display = 'flex';
-      document.getElementById('call-type-title').textContent = "📹 Video Call";
-      const roomName = `Chat4Now_Call_${[myName, activeFriend].sort().join("_")}`;
-      
-      const wrapper = document.getElementById('call-wrapper');
-      wrapper.innerHTML = `<iframe src="https://meet.ffmuc.net/${roomName}#userInfo.displayName=%22${encodeURIComponent(myName)}%22" allow="camera; microphone; display-capture; autoplay" id="call-container-iframe"></iframe>`;
-    });
+    document.getElementById('start-voice-call-btn').addEventListener('click', () => startCall(true));
+    document.getElementById('start-video-call-btn').addEventListener('click', () => startCall(false));
 
     document.getElementById('end-call-btn').addEventListener('click', () => {
-      const wrapper = document.getElementById('call-wrapper');
-      wrapper.innerHTML = "";
+      if (jitsiApi) {
+        jitsiApi.dispose();
+        jitsiApi = null;
+      }
+      document.getElementById('jitsi-container').innerHTML = "";
       document.getElementById('call-overlay').style.display = 'none';
     });
   </script>
