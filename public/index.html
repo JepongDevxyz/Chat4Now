@@ -5,143 +5,170 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Chat4Now Messenger</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    }
-    body {
-      background-color: #121212;
-      color: #ffffff;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      padding: 20px;
-    }
-    .container {
-      background-color: #1e1e1e;
-      padding: 30px;
-      border-radius: 16px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-      width: 100%;
-      max-width: 400px;
-      text-align: center;
-    }
-    h1 {
-      font-size: 24px;
-      margin-bottom: 8px;
-    }
-    p {
-      color: #aaa;
-      font-size: 14px;
-      margin-bottom: 20px;
-    }
-    input[type="text"] {
-      width: 100%;
-      padding: 12px;
-      border-radius: 8px;
-      border: 1px solid #333;
-      background-color: #2a2a2a;
-      color: white;
-      font-size: 14px;
-      margin-bottom: 16px;
-      outline: none;
-    }
-    input[type="text"]:focus {
-      border-color: #0d6efd;
-    }
-    .btn-enter {
-      width: 100%;
-      padding: 12px;
-      background-color: #0d6efd;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-    }
-    .btn-enter:hover {
-      background-color: #0b5ed7;
-    }
-    /* Placeholder UI para sa Chat Screen */
-    #chat-screen {
-      display: none;
-      text-align: left;
-    }
-    .chat-header {
-      border-bottom: 1px solid #333;
-      padding-bottom: 12px;
-      margin-bottom: 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .btn-leave {
-      background-color: #dc3545;
-      color: white;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 12px;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: #121212; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 10px; }
+    .card { background-color: #1e1e1e; padding: 20px; border-radius: 16px; width: 100%; max-width: 450px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+    h1, h2 { text-align: center; margin-bottom: 12px; }
+    p { color: #aaa; font-size: 14px; text-align: center; margin-bottom: 16px; }
+    input[type="text"] { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #2a2a2a; color: white; margin-bottom: 12px; outline: none; }
+    button { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .btn-primary { background: #0d6efd; color: white; }
+    .btn-primary:hover { background: #0b5ed7; }
+    .btn-call { background: #198754; color: white; margin-bottom: 10px; }
+    .btn-danger { background: #dc3545; color: white; }
+    
+    #app-screen { display: none; }
+    .chat-box { height: 250px; background: #141414; border-radius: 8px; padding: 12px; overflow-y: auto; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .message { background: #2a2a2a; padding: 8px 12px; border-radius: 8px; max-width: 80%; width: fit-content; font-size: 14px; }
+    .message.my-msg { background: #0d6efd; align-self: flex-end; }
+    .msg-user { font-size: 11px; color: #ccc; margin-bottom: 2px; font-weight: bold; }
+    .chat-input-group { display: flex; gap: 8px; }
+    .chat-input-group input { margin-bottom: 0; }
+    .chat-input-group button { width: auto; padding: 0 16px; }
+    #video-container { width: 100%; height: 300px; margin-bottom: 12px; border-radius: 8px; overflow: hidden; display: none; }
   </style>
+  
+  <!-- Jitsi External API para sa Voice/Video Call -->
+  <script src="https://meet.jit.si/external_api.js"></script>
 </head>
 <body>
 
-  <div class="container">
-    <!-- Login / Enter Screen -->
+  <div class="card">
+    <!-- Login Screen -->
     <div id="login-screen">
       <h1>Chat4Now</h1>
-      <p>Maglagay ng pangalan para makapasok sa chat UI prototype.</p>
-      <input type="text" id="username-input" placeholder="Enter your name..." />
-      <button id="enter-btn" class="btn-enter">Enter Chat Room</button>
+      <p>Maglagay ng pangalan para makapasok sa chat room.</p>
+      <input type="text" id="username" placeholder="Enter your display name..." />
+      <button class="btn-primary" id="join-btn">Join Chat</button>
     </div>
 
-    <!-- Main Chat UI Area (Dito mo ididisenyo ang UI mo) -->
-    <div id="chat-screen">
-      <div class="chat-header">
-        <div>
-          <h2 id="display-name">User</h2>
-          <small style="color: #28a745;">● Online</small>
-        </div>
-        <button id="leave-btn" class="btn-leave">Exit</button>
+    <!-- Main App Screen -->
+    <div id="app-screen">
+      <h2 id="room-title">Global Room</h2>
+      
+      <!-- Video Call Container -->
+      <div id="video-container"></div>
+      
+      <button class="btn-call" id="call-btn">📹 Start / Join Video Call</button>
+      <button class="btn-danger" id="end-call-btn" style="display: none; margin-bottom: 10px;">🔴 End Call</button>
+
+      <!-- Chat Box -->
+      <div class="chat-box" id="chat-box"></div>
+      
+      <div class="chat-input-group">
+        <input type="text" id="msg-input" placeholder="Type a message..." />
+        <button class="btn-primary" id="send-btn">Send</button>
       </div>
       
-      <!-- Simulan mo dito ang pagbuo ng Chat UI Elements -->
-      <div style="height: 200px; background: #141414; border-radius: 8px; padding: 12px; margin-bottom: 12px; overflow-y: auto;">
-        <p style="color: #666; text-align: center; font-size: 12px;">Chat UI Area (Ready for Development)</p>
-      </div>
+      <button class="btn-danger" id="exit-btn" style="margin-top: 12px;">Exit Room</button>
     </div>
   </div>
 
-  <script>
-    const loginScreen = document.getElementById('login-screen');
-    const chatScreen = document.getElementById('chat-screen');
-    const usernameInput = document.getElementById('username-input');
-    const enterBtn = document.getElementById('enter-btn');
-    const leaveBtn = document.getElementById('leave-btn');
-    const displayName = document.getElementById('display-name');
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    enterBtn.addEventListener('click', () => {
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyC3mJ-9-hv85jZiAsGi_kuuZjj_mmjAUmQ",
+      authDomain: "chat4now-orforever.firebaseapp.com",
+      projectId: "chat4now-orforever",
+      storageBucket: "chat4now-orforever.firebasestorage.app",
+      messagingSenderId: "1027816238177",
+      appId: "1:1027816238177:web:9b3794c53f4d194cbc4e20"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let currentUser = "";
+    let jitsiApi = null;
+
+    const loginScreen = document.getElementById('login-screen');
+    const appScreen = document.getElementById('app-screen');
+    const usernameInput = document.getElementById('username');
+    const chatBox = document.getElementById('chat-box');
+    const msgInput = document.getElementById('msg-input');
+    const videoContainer = document.getElementById('video-container');
+
+    // 1. Join Chat
+    document.getElementById('join-btn').addEventListener('click', () => {
       const name = usernameInput.value.trim();
-      if (name) {
-        displayName.textContent = name;
-        loginScreen.style.display = 'none';
-        chatScreen.style.display = 'block';
-      } else {
-        alert('Mangyaring maglagay ng pangalan.');
-      }
+      if (!name) return alert("Please enter your name!");
+      currentUser = name;
+      
+      loginScreen.style.display = "none";
+      appScreen.style.display = "block";
+      
+      loadRealtimeMessages();
     });
 
-    leaveBtn.addEventListener('click', () => {
-      loginScreen.style.display = 'block';
-      chatScreen.style.display = 'none';
-      usernameInput.value = '';
+    // 2. Realtime Messages (Firestore)
+    function loadRealtimeMessages() {
+      const q = query(collection(db, "messages"), orderBy("createdAt", "asc"));
+      onSnapshot(q, (snapshot) => {
+        chatBox.innerHTML = "";
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          const msgDiv = document.createElement('div');
+          const isMe = data.user === currentUser;
+          
+          msgDiv.className = `message ${isMe ? 'my-msg' : ''}`;
+          msgDiv.innerHTML = `
+            <div class="msg-user">${data.user}</div>
+            <div>${data.text}</div>
+          `;
+          chatBox.appendChild(msgDiv);
+        });
+        chatBox.scrollTop = chatBox.scrollHeight;
+      });
+    }
+
+    // 3. Send Message
+    document.getElementById('send-btn').addEventListener('click', sendMessage);
+    msgInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+    async function sendMessage() {
+      const text = msgInput.value.trim();
+      if (!text) return;
+      msgInput.value = "";
+
+      await addDoc(collection(db, "messages"), {
+        text: text,
+        user: currentUser,
+        createdAt: serverTimestamp()
+      });
+    }
+
+    // 4. Start Voice/Video Call (Jitsi Meet Web API)
+    document.getElementById('call-btn').addEventListener('click', () => {
+      videoContainer.style.display = "block";
+      document.getElementById('call-btn').style.display = "none";
+      document.getElementById('end-call-btn').style.display = "block";
+
+      const domain = 'meet.jit.si';
+      const options = {
+        roomName: 'Chat4Now-Global-Room-Call',
+        width: '100%',
+        height: '100%',
+        parentNode: videoContainer,
+        userInfo: { displayName: currentUser }
+      };
+      jitsiApi = new JitsiMeetExternalAPI(domain, options);
+    });
+
+    // 5. End Call
+    document.getElementById('end-call-btn').addEventListener('click', () => {
+      if (jitsiApi) jitsiApi.dispose();
+      videoContainer.style.display = "none";
+      document.getElementById('call-btn').style.display = "block";
+      document.getElementById('end-call-btn').style.display = "none";
+    });
+
+    // 6. Exit
+    document.getElementById('exit-btn').addEventListener('click', () => {
+      if (jitsiApi) jitsiApi.dispose();
+      location.reload();
     });
   </script>
 </body>
