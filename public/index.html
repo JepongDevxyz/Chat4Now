@@ -292,11 +292,18 @@
     }
 
     .call-top-left button {
-      background: none;
+      background: rgba(255,255,255,0.2);
       border: none;
       color: #fff;
       font-size: 20px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(5px);
     }
 
     .caller-title {
@@ -307,21 +314,6 @@
       display: flex;
       align-items: center;
       gap: 6px;
-    }
-
-    .call-top-right {
-      display: flex;
-      align-items: center;
-      gap: 18px;
-    }
-
-    .call-top-btn {
-      background: none;
-      border: none;
-      color: #fff;
-      font-size: 22px;
-      cursor: pointer;
-      opacity: 0.9;
     }
 
     /* Video Canvas Area */
@@ -339,6 +331,53 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
+      transition: filter 0.3s ease;
+    }
+
+    /* Camera Filters Styling */
+    .filter-none { filter: none !important; }
+    .filter-vintage { filter: sepia(0.4) contrast(1.2) brightness(0.9) hue-rotate(-10deg) !important; }
+    .filter-sepia { filter: sepia(0.85) saturate(1.2) !important; }
+    .filter-grayscale { filter: grayscale(1) contrast(1.1) !important; }
+    .filter-warm { filter: sepia(0.3) saturate(1.4) brightness(1.05) !important; }
+    .filter-cyber { filter: hue-rotate(140deg) saturate(2) contrast(1.2) !important; }
+    .filter-glow { filter: brightness(1.2) contrast(1.15) saturate(1.3) drop-shadow(0 0 10px rgba(16,185,129,0.5)) !important; }
+
+    /* Filter Selector Bar */
+    .filter-bar {
+      position: absolute;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+      gap: 10px;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      padding: 10px 16px;
+      border-radius: 30px;
+      border: 1px solid rgba(255,255,255,0.15);
+      z-index: 30;
+      max-width: 90%;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    .filter-bar::-webkit-scrollbar { display: none; }
+    .filter-btn {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .filter-btn.active {
+      background: var(--accent-gradient);
+      color: #0f172a;
+      border-color: transparent;
+      font-weight: 700;
     }
 
     /* Messenger PIP Floating Local Stream */
@@ -365,33 +404,13 @@
       object-fit: cover;
       pointer-events: none;
       transform: scaleX(-1);
+      transition: filter 0.3s ease;
     }
     #local-video.no-mirror {
       transform: scaleX(1);
     }
 
-    /* Filter / Effect Icon inside PIP */
-    .pip-effect-btn {
-      position: absolute;
-      bottom: 14px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: rgba(0, 0, 0, 0.55);
-      backdrop-filter: blur(4px);
-      border: none;
-      color: #fff;
-      font-size: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      z-index: 22;
-    }
-
-    /* Floating Status Indicator Overlay (e.g. Mic Muted) */
+    /* Floating Status Indicator Overlay */
     .status-indicator-badge {
       position: absolute;
       right: 20px;
@@ -424,8 +443,8 @@
     }
 
     .msg-call-btn {
-      width: 56px;
-      height: 56px;
+      width: 54px;
+      height: 54px;
       border-radius: 50%;
       border: none;
       background: rgba(255, 255, 255, 0.2);
@@ -435,10 +454,11 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
+      font-size: 20px;
       transition: all 0.2s ease;
     }
     .msg-call-btn:active { transform: scale(0.92); }
-    .msg-call-btn svg { width: 26px; height: 26px; fill: currentColor; }
+    .msg-call-btn svg { width: 24px; height: 24px; fill: currentColor; }
     
     .msg-call-btn.active-off {
       background: #ffffff;
@@ -515,12 +535,38 @@
     }
     .btn-accept-call { background: #10b981; color: #fff; }
     .btn-decline-call { background: #ef4444; color: #fff; }
+
+    /* Minimized Call Floating Bar */
+    #mini-call-bar {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      background: var(--accent-gradient);
+      color: #0f172a;
+      padding: 10px 16px;
+      border-radius: 30px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+      z-index: 9999;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 13px;
+      animation: pulseAnim 2s infinite;
+    }
   </style>
 </head>
 <body>
 
   <div id="toast-notification">Notification text</div>
   
+  <!-- Minimized Call Widget Bar -->
+  <div id="mini-call-bar">
+    <span>📞 Ongoing Call...</span>
+    <span style="font-size: 10px; background: rgba(0,0,0,0.2); padding: 3px 8px; border-radius: 10px; color:#fff;">Tap to expand</span>
+  </div>
+
   <!-- Incoming Call Full Notification Screen -->
   <div id="incoming-call-modal">
     <div class="incoming-card">
@@ -638,21 +684,28 @@
 
       <!-- Messenger WebRTC Call Overlay Screen -->
       <div id="call-overlay">
-        <!-- Floating Header -->
+        <!-- Floating Header with Minimize ⤢ Button -->
         <div class="call-top-bar">
           <div class="call-top-left">
-            <button id="call-minimize-screen-btn">⤢</button>
-            <div class="caller-title" id="call-partner-title">Mahal 🫶</div>
-          </div>
-          <div class="call-top-right">
-            <button class="call-top-btn">👤<sup>+</sup></button>
-            <button class="call-top-btn">⋮</button>
+            <button id="call-minimize-screen-btn" title="Minimize Call">⤢</button>
+            <div class="caller-title" id="call-partner-title">User</div>
           </div>
         </div>
 
         <div class="call-videos-container">
-          <video id="remote-video" autoplay playsinline></video>
+          <video id="remote-video" class="filter-none" autoplay playsinline></video>
           
+          <!-- Filter Selection Options Menu -->
+          <div class="filter-bar" id="filter-bar">
+            <button class="filter-btn active" data-filter="filter-none">Off</button>
+            <button class="filter-btn" data-filter="filter-glow">✨ Glow</button>
+            <button class="filter-btn" data-filter="filter-warm">🌅 Warm</button>
+            <button class="filter-btn" data-filter="filter-vintage">🎞️ Vintage</button>
+            <button class="filter-btn" data-filter="filter-cyber">👾 Cyber</button>
+            <button class="filter-btn" data-filter="filter-sepia">📷 Sepia</button>
+            <button class="filter-btn" data-filter="filter-grayscale">🖤 B&W</button>
+          </div>
+
           <!-- Mute Status Overlay Badge -->
           <div class="status-indicator-badge" id="remote-mute-badge">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l4.01 4.01C6.4 9.04 6 10.04 6 11h1.7c0-1.57.87-2.9 2.12-3.6l1.45 1.45C10.55 9.17 10 9.9 10 11v.17l4.28 4.28c-.37.12-.76.21-1.18.27V18h-2.2v-2.28c-2.88-.41-5.1-2.86-5.1-5.87H4c0 3.66 2.68 6.7 6.1 7.23V21h3.8v-1.65c.77-.12 1.5-.37 2.17-.73l2.66 2.65L20 19.99 4.27 3z"/></svg>
@@ -660,13 +713,14 @@
 
           <!-- Draggable Local Video Container (PIP) -->
           <div id="localVideoContainer" class="draggable-video">
-            <video id="local-video" autoplay playsinline muted></video>
-            <button class="pip-effect-btn">✨</button>
+            <video id="local-video" class="filter-none" autoplay playsinline muted></video>
           </div>
         </div>
 
         <!-- Messenger Round Floating Controls -->
         <div class="call-footer-bar">
+          <!-- Filter Button ✨ -->
+          <button class="msg-call-btn" id="toggle-filter-btn" title="Camera Filters">✨</button>
           <!-- Toggle Camera -->
           <button class="msg-call-btn" id="toggle-cam-btn" title="Toggle Camera">
             <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
@@ -674,10 +728,6 @@
           <!-- Toggle Mic -->
           <button class="msg-call-btn" id="toggle-mic-btn" title="Toggle Mic">
             <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
-          </button>
-          <!-- Media/Share Button -->
-          <button class="msg-call-btn" id="media-share-btn" title="Media & Games">
-            <svg viewBox="0 0 24 24"><path d="M4 6h16v12H4z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 9l5 3-5 3z"/></svg>
           </button>
           <!-- Flip Camera Button -->
           <button class="msg-call-btn" id="flip-cam-btn" title="Flip Camera">
@@ -758,9 +808,8 @@
     const sheetFriendBtn = document.getElementById('sheet-friend-btn');
     const sheetCancelBtn = document.getElementById('sheet-cancel-btn');
 
-    // ================= PIP DRAGGABLE LOGIC =================
+    // PIP DRAGGABLE LOGIC
     const localVideoContainer = document.getElementById('localVideoContainer');
-
     let isDragging = false;
     let currentX, currentY, initialX, initialY;
     let xOffset = 0, yOffset = 0;
@@ -1369,6 +1418,30 @@
 
     // ================= WEB-RTC VIDEO CALL CORE =================
 
+    // VIDEO FILTER TOGGLE & HANDLERS
+    const filterBar = document.getElementById('filter-bar');
+    const toggleFilterBtn = document.getElementById('toggle-filter-btn');
+    const remoteVideo = document.getElementById('remote-video');
+    const localVideo = document.getElementById('local-video');
+
+    toggleFilterBtn.addEventListener('click', () => {
+      const isVisible = filterBar.style.display === 'flex';
+      filterBar.style.display = isVisible ? 'none' : 'flex';
+    });
+
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const selectedFilter = btn.getAttribute('data-filter');
+
+        // Apply filter class to video tags
+        remoteVideo.className = selectedFilter;
+        localVideo.className = selectedFilter;
+      });
+    });
+
     async function getLocalMediaStream(isVideo = true, facingMode = 'user') {
       const videoElement = document.getElementById('local-video');
       
@@ -1440,7 +1513,8 @@
         return;
       }
 
-      document.getElementById('call-partner-title').textContent = `${activeFriend} 🫶`;
+      // Automatically set the target user's dynamic name
+      document.getElementById('call-partner-title').textContent = activeFriend;
       document.getElementById('call-overlay').style.display = "flex";
       playRingtone('out');
       callStartTime = Date.now();
@@ -1543,7 +1617,7 @@
 
       const data = incomingCallData;
       activeFriend = data.caller;
-      document.getElementById('call-partner-title').textContent = `${activeFriend} 🫶`;
+      document.getElementById('call-partner-title').textContent = activeFriend;
       callStartTime = Date.now();
       isCallVideoActive = data.isVideo;
       currentFacingMode = 'user';
@@ -1629,7 +1703,9 @@
       if (activeFriend) deleteDoc(doc(db, "calls", activeFriend)).catch(() => {});
 
       document.getElementById('call-overlay').style.display = "none";
+      document.getElementById('mini-call-bar').style.display = "none";
       document.getElementById('incoming-call-modal').style.display = "none";
+      document.getElementById('filter-bar').style.display = "none";
       document.getElementById('remote-video').srcObject = null;
       document.getElementById('local-video').srcObject = null;
 
@@ -1646,10 +1722,21 @@
       }
     }
 
+    // MINIMIZE AND EXPAND CALL FEATURE (⤢)
+    document.getElementById('call-minimize-screen-btn').addEventListener('click', () => {
+      document.getElementById('call-overlay').style.display = "none";
+      document.getElementById('mini-call-bar').style.display = "flex";
+      filterBar.style.display = "none";
+    });
+
+    document.getElementById('mini-call-bar').addEventListener('click', () => {
+      document.getElementById('call-overlay').style.display = "flex";
+      document.getElementById('mini-call-bar').style.display = "none";
+    });
+
     document.getElementById('start-voice-call-btn').addEventListener('click', () => startWebRTC(false));
     document.getElementById('start-video-call-btn').addEventListener('click', () => startWebRTC(true));
     document.getElementById('end-call-btn').addEventListener('click', () => closeCallOverlay("Ended"));
-    document.getElementById('call-minimize-screen-btn').addEventListener('click', () => closeCallOverlay("Minimized"));
 
     let isMuted = false;
     document.getElementById('toggle-mic-btn').addEventListener('click', () => {
