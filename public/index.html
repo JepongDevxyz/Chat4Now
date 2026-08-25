@@ -3,9 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Chat4Now Messenger</title>
-  <!-- Jitsi Meet External API -->
-  <script src="https://meet.jit.si/external_api.js"></script>
+  <title>Chat4Now Messenger - WebRTC</title>
   <style>
     :root {
       --bg-primary: #0f172a;
@@ -55,7 +53,7 @@
       } 
     }
 
-    /* Modern Toast Notification */
+    /* Toast Notification */
     #toast-notification {
       position: fixed;
       top: 20px;
@@ -217,7 +215,6 @@
     .btn-add { background: var(--accent); color: #0f172a; }
     .btn-accept { background: #10b981; color: #fff; }
 
-    /* Floating Action Button (+) */
     #fab-find {
       position: absolute;
       bottom: 24px;
@@ -263,13 +260,74 @@
     .btn-send { padding: 12px 20px; border-radius: 12px; border: none; background: var(--accent-gradient); color: #0f172a; font-weight: 700; cursor: pointer; flex-shrink: 0; box-shadow: 0 4px 10px rgba(16,185,129,0.2); }
     .icon-btn { background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; flex-shrink: 0; }
 
-    #call-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-primary); z-index: 100; display: none; flex-direction: column; }
-    #jitsi-container { width: 100%; height: calc(100% - 56px); }
+    /* WebRTC Messenger Calling Overlay Screen */
+    #call-overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: #0b0f19;
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+    }
+    .call-videos-container {
+      flex: 1;
+      position: relative;
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+    #remote-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: #111;
+    }
+    #local-video {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      width: 110px;
+      height: 160px;
+      object-fit: cover;
+      border-radius: 12px;
+      border: 2px solid rgba(255,255,255,0.2);
+      background: #222;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      z-index: 10;
+    }
+    .call-footer-bar {
+      padding: 20px;
+      background: rgba(15, 23, 42, 0.9);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      border-top: 1px solid var(--border-color);
+      z-index: 10;
+    }
+    .call-control-btn {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      border: none;
+      background: #334155;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      transition: transform 0.1s;
+    }
+    .call-control-btn:active { transform: scale(0.95); }
+    .call-control-btn.hangup { background: var(--danger); }
   </style>
 </head>
 <body>
 
-  <!-- Toast & Action Sheet -->
   <div id="toast-notification">Notification text</div>
   <div id="action-modal">
     <div class="action-sheet">
@@ -285,7 +343,7 @@
     <div class="login-card">
       <div class="login-logo">💬</div>
       <h1>Chat4Now</h1>
-      <p>Modern secure messaging system</p>
+      <p>WebRTC P2P Messenger</p>
       <input type="text" id="username-input" placeholder="Enter your display name..." />
       <button class="btn-login" id="enter-btn">Start Messaging</button>
       <button class="btn-guest" id="guest-btn">👤 Continue as Guest</button>
@@ -372,12 +430,17 @@
         </div>
       </div>
 
+      <!-- WebRTC Call Overlay Screen -->
       <div id="call-overlay">
-        <div style="padding: 12px 20px; background: rgba(30, 41, 59, 0.9); display: flex; justify-content: space-between; align-items: center; height: 56px;">
-          <span id="call-type-title" style="font-weight: 600;">Call</span>
-          <button class="btn-action" style="background: var(--danger); color: #fff;" id="end-call-btn">End Call</button>
+        <div class="call-videos-container">
+          <video id="remote-video" autoplay playsinline></video>
+          <video id="local-video" autoplay playsinline muted></video>
         </div>
-        <div id="jitsi-container"></div>
+        <div class="call-footer-bar">
+          <button class="call-control-btn" id="toggle-mic-btn" title="Mute Mic">🎤</button>
+          <button class="call-control-btn hangup" id="end-call-btn" title="End Call">📞</button>
+          <button class="call-control-btn" id="toggle-cam-btn" title="Camera">📷</button>
+        </div>
       </div>
     </div>
   </div>
@@ -407,8 +470,20 @@
     let selectedTargetUser = null;
     let selectedTargetType = '';
     let messagesUnsubscribe = null;
-    let jitsiApi = null;
     let selectedFile = null;
+
+    // WebRTC Variables
+    let peerConnection = null;
+    let localStream = null;
+    let remoteStream = null;
+    let callDocRef = null;
+    let unsubscribeCallSignal = null;
+
+    const servers = {
+      iceServers: [
+        { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }
+      ]
+    };
 
     const loginScreen = document.getElementById('login-screen');
     const mainApp = document.getElementById('main-app');
@@ -455,8 +530,6 @@
       mainApp.style.display = "flex";
 
       startPingMeasurement();
-      listenMyUserData();
-      listenAllUsersStatus();
       listenMyFriends();
       listenRequests();
       listenIncomingCalls();
@@ -492,22 +565,6 @@
           }, { merge: true });
         }
       }, 10000);
-
-      if (isGuest) {
-        setInterval(async () => {
-          try {
-            const userDoc = await getDoc(doc(db, "users", myName));
-            if (userDoc.exists()) {
-              const data = userDoc.data();
-              if (data.lastSeen && (Date.now() - data.lastSeen > 3600000)) {
-                await deleteDoc(doc(db, "users", myName));
-                alert("Session expired due to 1 hour inactivity.");
-                location.reload();
-              }
-            }
-          } catch(e) { console.error(e); }
-        }, 60000);
-      }
     }
 
     function openActionModal(username, type) {
@@ -533,9 +590,7 @@
 
     sheetMsgBtn.addEventListener('click', () => {
       actionModal.style.display = 'none';
-      if (selectedTargetUser) {
-        openChatWith(selectedTargetUser);
-      }
+      if (selectedTargetUser) openChatWith(selectedTargetUser);
     });
 
     sheetFriendBtn.addEventListener('click', async () => {
@@ -551,7 +606,6 @@
 
     function loadFindUsers(filterKeyword = "") {
       const usersQuery = query(collection(db, "users"));
-      
       onSnapshot(usersQuery, (snapshot) => {
         searchResultsDiv.innerHTML = "";
         let usersFound = false;
@@ -562,10 +616,7 @@
 
           if (targetName === myName) return;
           if (myFriendsList.includes(targetName)) return;
-          
-          if (filterKeyword && !targetName.toLowerCase().includes(filterKeyword.toLowerCase())) {
-            return;
-          }
+          if (filterKeyword && !targetName.toLowerCase().includes(filterKeyword.toLowerCase())) return;
 
           usersFound = true;
           const isOnline = userData.status === "online" && (Date.now() - (userData.lastSeen || 0) < 15000);
@@ -600,9 +651,7 @@
       });
     }
 
-    searchUsersInput.addEventListener('input', (e) => {
-      loadFindUsers(e.target.value.trim());
-    });
+    searchUsersInput.addEventListener('input', (e) => loadFindUsers(e.target.value.trim()));
 
     async function sendFriendRequest(targetUser) {
       if (!myName || !targetUser) return;
@@ -616,7 +665,6 @@
         showToast(`Friend request sent to ${targetUser}!`);
       } catch (err) {
         console.error("Error sending request:", err);
-        showToast("Failed to send friend request. Try again.");
       }
     }
 
@@ -625,7 +673,6 @@
       onSnapshot(reqQuery, (snapshot) => {
         requestsListDiv.innerHTML = "";
         let count = 0;
-        
         snapshot.forEach((docSnap) => {
           const reqData = docSnap.data();
           if (reqData.status !== "pending") return;
@@ -647,32 +694,24 @@
           item.querySelector('.btn-accept').addEventListener('click', async () => {
             await acceptFriendRequest(docSnap.id, reqData.from);
           });
-
           requestsListDiv.appendChild(item);
         });
-
-        const badge = document.getElementById('req-count');
-        badge.textContent = count > 0 ? `(${count})` : '';
+        document.getElementById('req-count').textContent = count > 0 ? `(${count})` : '';
       });
     }
 
     async function acceptFriendRequest(docId, senderName) {
       try {
         await updateDoc(doc(db, "requests", docId), { status: "accepted" });
-        
         await updateDoc(doc(db, "users", myName), { friends: arrayUnion(senderName) });
         await updateDoc(doc(db, "users", senderName), { friends: arrayUnion(myName) });
-
         showToast(`You are now friends with ${senderName}!`);
         switchTab('chats');
-      } catch (e) {
-        console.error(e);
-      }
+      } catch (e) { console.error(e); }
     }
 
     function listenMyFriends() {
       const userDocRef = doc(db, "users", myName);
-      
       onSnapshot(userDocRef, (docSnap) => {
         if (!docSnap.exists()) return;
         const data = docSnap.data();
@@ -700,13 +739,10 @@
             </div>
             <button class="btn-action" style="background: rgba(239,68,68,0.15); color: #f87171;">Unfriend</button>
           `;
-
           friendItem.addEventListener('click', () => openActionModal(friendName, 'friend'));
           friendItem.querySelector('button').addEventListener('click', async (e) => {
             e.stopPropagation();
-            if (confirm(`Are you sure you want to unfriend ${friendName}?`)) {
-              await removeFriend(friendName);
-            }
+            if (confirm(`Are you sure you want to unfriend ${friendName}?`)) await removeFriend(friendName);
           });
           friendsListDiv.appendChild(friendItem);
 
@@ -721,10 +757,7 @@
               </div>
             </div>
           `;
-
-          chatItem.addEventListener('click', () => {
-            openChatWith(friendName);
-          });
+          chatItem.addEventListener('click', () => openChatWith(friendName));
           chatsListDiv.appendChild(chatItem);
         });
       });
@@ -735,9 +768,7 @@
         await updateDoc(doc(db, "users", myName), { friends: arrayRemove(friendName) });
         await updateDoc(doc(db, "users", friendName), { friends: arrayRemove(myName) });
         showToast(`You have unfriended ${friendName}.`);
-      } catch (err) {
-        console.error("Error unfriending:", err);
-      }
+      } catch (err) { console.error(err); }
     }
 
     const tabChats = document.getElementById('tab-chats');
@@ -755,41 +786,24 @@
       searchResultsDiv.style.display = 'none';
       searchBoxContainer.style.display = 'none';
 
-      if (activeTab === 'chats') {
-        tabChats.classList.add('active');
-        chatsListDiv.style.display = 'block';
-      } else if (activeTab === 'requests') {
-        tabRequests.classList.add('active');
-        requestsListDiv.style.display = 'block';
-      } else if (activeTab === 'friends') {
-        tabFriends.classList.add('active');
-        friendsListDiv.style.display = 'block';
-      } else if (activeTab === 'find') {
-        searchBoxContainer.style.display = 'block';
-        searchResultsDiv.style.display = 'block';
-      }
+      if (activeTab === 'chats') { tabChats.classList.add('active'); chatsListDiv.style.display = 'block'; }
+      else if (activeTab === 'requests') { tabRequests.classList.add('active'); requestsListDiv.style.display = 'block'; }
+      else if (activeTab === 'friends') { tabFriends.classList.add('active'); friendsListDiv.style.display = 'block'; }
+      else if (activeTab === 'find') { searchBoxContainer.style.display = 'block'; searchResultsDiv.style.display = 'block'; }
     }
 
     tabChats.addEventListener('click', () => switchTab('chats'));
     tabRequests.addEventListener('click', () => switchTab('requests'));
     tabFriends.addEventListener('click', () => switchTab('friends'));
+    fabFind.addEventListener('click', () => { switchTab('find'); loadFindUsers(); searchUsersInput.focus(); });
 
-    fabFind.addEventListener('click', () => {
-      switchTab('find');
-      loadFindUsers();
-      searchUsersInput.focus();
-    });
-
-    function getChatRoomId(user1, user2) {
-      return [user1, user2].sort().join("_");
-    }
+    function getChatRoomId(user1, user2) { return [user1, user2].sort().join("_"); }
 
     window.openChatWith = function(friendName) {
       if (!myFriendsList.includes(friendName)) {
         showToast("Cannot send message: You are not friends with this user.");
         return;
       }
-
       activeFriend = friendName;
       document.getElementById('no-chat-selected').style.display = 'none';
       document.getElementById('active-chat-window').style.display = 'flex';
@@ -797,7 +811,6 @@
       document.getElementById('active-friend-avatar').textContent = friendName.charAt(0).toUpperCase();
       document.getElementById('chat-area').classList.add('active');
       document.getElementById('sidebar').classList.add('hidden-mobile');
-
       loadMessages(activeFriend);
     };
 
@@ -811,19 +824,16 @@
       const roomId = getChatRoomId(myName, friendName);
       const messagesRef = collection(db, "chats", roomId, "messages");
       const q = query(messagesRef, orderBy("timestamp", "asc"));
-
       if (messagesUnsubscribe) messagesUnsubscribe();
 
       messagesUnsubscribe = onSnapshot(q, (snapshot) => {
         const box = document.getElementById('messages-box');
         box.innerHTML = "";
-        
         snapshot.forEach((docSnap) => {
           const msg = docSnap.data();
           const isMe = msg.sender === myName;
           const div = document.createElement('div');
           div.className = `message-bubble ${isMe ? 'msg-outgoing' : 'msg-incoming'}`;
-          
           let contentHtml = "";
           if (msg.type === 'image') {
             contentHtml = `<img src="${msg.fileUrl}" style="max-width: 100%; border-radius: 8px; margin-top: 4px;" />`;
@@ -832,11 +842,7 @@
           } else {
             contentHtml = `<div>${escapeHtml(msg.text)}</div>`;
           }
-
-          div.innerHTML = `
-            ${!isMe ? `<div class="msg-sender">${msg.sender}</div>` : ''}
-            ${contentHtml}
-          `;
+          div.innerHTML = `${!isMe ? `<div class="msg-sender">${msg.sender}</div>` : ''}${contentHtml}`;
           box.appendChild(div);
         });
         box.scrollTop = box.scrollHeight;
@@ -852,7 +858,6 @@
     const messageTextInput = document.getElementById('message-text-input');
     const fileUploadInput = document.getElementById('file-upload-input');
     const selectedFileNameDisplay = document.getElementById('selected-file-name');
-    const hdToggle = document.getElementById('hd-toggle');
 
     fileUploadInput.addEventListener('change', (e) => {
       if (e.target.files.length > 0) {
@@ -867,7 +872,6 @@
         showToast("Cannot send message: You are not friends with this user.");
         return;
       }
-
       const text = messageTextInput.value.trim();
       if (!text && !selectedFile) return;
 
@@ -878,118 +882,201 @@
         if (selectedFile) {
           const storageRef = ref(storage, `uploads/${Date.now()}_${selectedFile.name}`);
           const uploadTask = uploadBytesResumable(storageRef, selectedFile);
-          
           showToast("Uploading file...");
           uploadTask.on('state_changed', null, 
-            (error) => { showToast("Upload failed."); console.error(error); },
+            (error) => { showToast("Upload failed."); },
             async () => {
               const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
               const isImage = selectedFile.type.startsWith('image/');
               await addDoc(messagesRef, {
-                sender: myName,
-                text: text || selectedFile.name,
-                fileUrl: downloadURL,
-                fileName: selectedFile.name,
-                type: isImage ? 'image' : 'file',
-                timestamp: serverTimestamp()
+                sender: myName, text: text || selectedFile.name,
+                fileUrl: downloadURL, fileName: selectedFile.name,
+                type: isImage ? 'image' : 'file', timestamp: serverTimestamp()
               });
-              selectedFile = null;
-              fileUploadInput.value = "";
-              selectedFileNameDisplay.textContent = "";
+              selectedFile = null; fileUploadInput.value = ""; selectedFileNameDisplay.textContent = "";
             }
           );
         }
-
         if (text) {
-          await addDoc(messagesRef, {
-            sender: myName,
-            text: text,
-            type: 'text',
-            timestamp: serverTimestamp()
-          });
+          await addDoc(messagesRef, { sender: myName, text: text, type: 'text', timestamp: serverTimestamp() });
           messageTextInput.value = "";
         }
-      } catch (e) {
-        console.error("Error sending message:", e);
-        showToast("Failed to send message.");
-      }
+      } catch (e) { showToast("Failed to send message."); }
     }
 
     sendMsgBtn.addEventListener('click', sendCurrentMessage);
-    messageTextInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') sendCurrentMessage();
-    });
+    messageTextInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendCurrentMessage(); });
 
-    // Audio & Video Call via Jitsi
-    function startCall(isVideo) {
+    // ================= WEB-RTC CALL FUNCTIONS =================
+    async function startWebRTC(isVideo) {
       if (!activeFriend) return;
       if (!myFriendsList.includes(activeFriend)) {
         showToast("Cannot call: You are not friends with this user.");
         return;
       }
 
-      const roomName = `Chat4Now_${getChatRoomId(myName, activeFriend)}`;
-      document.getElementById('call-type-title').textContent = isVideo ? "Video Call" : "Voice Call";
       document.getElementById('call-overlay').style.display = "flex";
+      
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true });
+        document.getElementById('local-video').srcObject = localStream;
+      } catch (err) {
+        showToast("Camera/Microphone permission denied.");
+        closeCallOverlay();
+        return;
+      }
 
-      const domain = "meet.jit.si";
-      const options = {
-        roomName: roomName,
-        width: "100%",
-        height: "100%",
-        parentNode: document.querySelector('#jitsi-container'),
-        userInfo: { displayName: myName },
-        configOverwrite: {
-          startWithAudioMuted: false,
-          startWithVideoMuted: !isVideo
+      peerConnection = new RTCPeerConnection(servers);
+
+      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+      remoteStream = new MediaStream();
+      document.getElementById('remote-video').srcObject = remoteStream;
+
+      peerConnection.ontrack = (event) => {
+        event.streams[0].getTracks().forEach(track => {
+          remoteStream.addTrack(track);
+        });
+      };
+
+      callDocRef = doc(db, "calls", activeFriend);
+      const offerCol = collection(callDocRef, "offerCandidates");
+      const answerCol = collection(callDocRef, "answerCandidates");
+
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+          addDoc(offerCol, event.candidate.toJSON());
         }
       };
 
-      jitsiApi = new JitsiMeetExternalAPI(domain, options);
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
 
-      // Notify recipient via Firestore call signal
-      setDoc(doc(db, "calls", activeFriend), {
+      await setDoc(callDocRef, {
         caller: myName,
-        roomName: roomName,
+        offer: { type: offer.type, sdp: offer.sdp },
         isVideo: isVideo,
         timestamp: serverTimestamp()
-      }, { merge: true });
+      });
+
+      unsubscribeCallSignal = onSnapshot(callDocRef, async (snapshot) => {
+        const data = snapshot.data();
+        if (data && data.answer && !peerConnection.currentRemoteDescription) {
+          const rDescription = new RTCSessionDescription(data.answer);
+          await peerConnection.setRemoteDescription(rDescription);
+        }
+      });
+
+      onSnapshot(answerCol, (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'added') {
+            const candidate = new RTCIceCandidate(change.doc.data());
+            peerConnection.addIceCandidate(candidate).catch(() => {});
+          }
+        });
+      });
     }
 
-    document.getElementById('start-voice-call-btn').addEventListener('click', () => startCall(false));
-    document.getElementById('start-video-call-btn').addEventListener('click', () => startCall(true));
-
-    document.getElementById('end-call-btn').addEventListener('click', () => {
-      if (jitsiApi) {
-        jitsiApi.dispose();
-        jitsiApi = null;
-      }
-      document.getElementById('call-overlay').style.display = "none";
-    });
-
     function listenIncomingCalls() {
-      onSnapshot(doc(db, "calls", myName), (docSnap) => {
-        if (!docSnap.exists()) return;
-        const callData = docSnap.data();
-        if (callData && callData.caller && callData.roomName) {
-          if (confirm(`Incoming ${callData.isVideo ? 'Video' : 'Voice'} Call from ${callData.caller}. Accept?`)) {
-            document.getElementById('call-type-title').textContent = callData.isVideo ? "Video Call" : "Voice Call";
+      onSnapshot(doc(db, "calls", myName), async (snapshot) => {
+        const data = snapshot.data();
+        if (data && data.offer && data.caller) {
+          if (confirm(`Incoming ${data.isVideo ? 'Video' : 'Voice'} Call from ${data.caller}. Accept?`)) {
             document.getElementById('call-overlay').style.display = "flex";
+            
+            try {
+              localStream = await navigator.mediaDevices.getUserMedia({ video: data.isVideo, audio: true });
+              document.getElementById('local-video').srcObject = localStream;
+            } catch(e) {
+              showToast("Permission denied.");
+              return;
+            }
 
-            const options = {
-              roomName: callData.roomName,
-              width: "100%",
-              height: "100%",
-              parentNode: document.querySelector('#jitsi-container'),
-              userInfo: { displayName: myName }
+            peerConnection = new RTCPeerConnection(servers);
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+            remoteStream = new MediaStream();
+            document.getElementById('remote-video').srcObject = remoteStream;
+
+            peerConnection.ontrack = (event) => {
+              event.streams[0].getTracks().forEach(track => {
+                remoteStream.addTrack(track);
+              });
             };
-            jitsiApi = new JitsiMeetExternalAPI("meet.jit.si", options);
+
+            const callDoc = doc(db, "calls", myName);
+            const offerCandidatesCol = collection(callDoc, "offerCandidates");
+            const answerCandidatesCol = collection(callDoc, "answerCandidates");
+
+            peerConnection.onicecandidate = (event) => {
+              if (event.candidate) {
+                addDoc(answerCandidatesCol, event.candidate.toJSON());
+              }
+            };
+
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+
+            await updateDoc(callDoc, { answer: { type: answer.type, sdp: answer.sdp } });
+
+            onSnapshot(offerCandidatesCol, (snapshot) => {
+              snapshot.docChanges().forEach((change) => {
+                if (change.type === 'added') {
+                  const candidate = new RTCIceCandidate(change.doc.data());
+                  peerConnection.addIceCandidate(candidate).catch(() => {});
+                }
+              });
+            });
+          } else {
+            await deleteDoc(doc(db, "calls", myName)).catch(() => {});
           }
-          // Clear call doc after prompt
-          deleteDoc(doc(db, "calls", myName)).catch(() => {});
         }
       });
     }
+
+    function closeCallOverlay() {
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+      if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+      }
+      if (unsubscribeCallSignal) {
+        unsubscribeCallSignal();
+      }
+      deleteDoc(doc(db, "calls", myName)).catch(() => {});
+      if (activeFriend) deleteDoc(doc(db, "calls", activeFriend)).catch(() => {});
+
+      document.getElementById('call-overlay').style.display = "none";
+      document.getElementById('remote-video').srcObject = null;
+      document.getElementById('local-video').srcObject = null;
+    }
+
+    document.getElementById('start-voice-call-btn').addEventListener('click', () => startWebRTC(false));
+    document.getElementById('start-video-call-btn').addEventListener('click', () => startWebRTC(true));
+    document.getElementById('end-call-btn').addEventListener('click', closeCallOverlay);
+
+    // Mute mic & Camera toggles
+    let isMuted = false;
+    document.getElementById('toggle-mic-btn').addEventListener('click', () => {
+      if (!localStream) return;
+      isMuted = !isMuted;
+      localStream.getAudioTracks()[0].enabled = !isMuted;
+      document.getElementById('toggle-mic-btn').style.background = isMuted ? '#ef4444' : '#334155';
+    });
+
+    let isCamOff = false;
+    document.getElementById('toggle-cam-btn').addEventListener('click', () => {
+      if (!localStream) return;
+      isCamOff = !isCamOff;
+      const videoTrack = localStream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !isCamOff;
+        document.getElementById('toggle-cam-btn').style.background = isCamOff ? '#ef4444' : '#334155';
+      }
+    });
 
     function startPingMeasurement() {
       setInterval(() => {
@@ -1002,8 +1089,6 @@
         });
       }, 10000);
     }
-    function listenMyUserData() {}
-    function listenAllUsersStatus() {}
   </script>
 </body>
 </html>
