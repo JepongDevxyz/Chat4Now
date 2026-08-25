@@ -270,6 +270,7 @@
       display: none;
       flex-direction: column;
       user-select: none;
+      transition: all 0.3s ease-in-out;
     }
 
     /* Top Floating Header */
@@ -291,19 +292,25 @@
       color: #fff;
     }
 
+    /* INAYOS: Mas magandang Minimize / Expand Icon button */
     .call-top-left button {
-      background: rgba(255,255,255,0.2);
-      border: none;
+      background: rgba(255, 255, 255, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.3);
       color: #fff;
-      font-size: 20px;
-      width: 40px;
-      height: 40px;
+      font-size: 18px;
+      width: 42px;
+      height: 42px;
       border-radius: 50%;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      backdrop-filter: blur(5px);
+      backdrop-filter: blur(8px);
+      transition: background 0.2s, transform 0.1s;
+    }
+    .call-top-left button:active {
+      transform: scale(0.92);
+      background: rgba(255, 255, 255, 0.4);
     }
 
     .caller-title {
@@ -385,9 +392,9 @@
       position: absolute;
       top: 70px;
       right: 16px;
-      width: 125px;
-      height: 200px;
-      border-radius: 20px;
+      width: 115px;
+      height: 180px;
+      border-radius: 16px;
       background: #222;
       box-shadow: 0 8px 24px rgba(0,0,0,0.5);
       z-index: 20;
@@ -536,7 +543,7 @@
     .btn-accept-call { background: #10b981; color: #fff; }
     .btn-decline-call { background: #ef4444; color: #fff; }
 
-    /* Minimized Call Floating Bar */
+    /* Minimized Call Floating Bar / Floating Bubble */
     #mini-call-bar {
       position: fixed;
       top: 15px;
@@ -548,22 +555,24 @@
       display: none;
       align-items: center;
       gap: 10px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.5);
       z-index: 9999;
       cursor: pointer;
       font-weight: 700;
       font-size: 13px;
       animation: pulseAnim 2s infinite;
+      transition: transform 0.2s;
     }
+    #mini-call-bar:active { transform: scale(0.95); }
   </style>
 </head>
 <body>
 
   <div id="toast-notification">Notification text</div>
   
-  <!-- Minimized Call Widget Bar -->
+  <!-- Minimized Call Widget Bar (Fixed and Smooth on click expansion) -->
   <div id="mini-call-bar">
-    <span>📞 Ongoing Call...</span>
+    <span id="mini-call-label">📞 Ongoing Call...</span>
     <span style="font-size: 10px; background: rgba(0,0,0,0.2); padding: 3px 8px; border-radius: 10px; color:#fff;">Tap to expand</span>
   </div>
 
@@ -684,10 +693,13 @@
 
       <!-- Messenger WebRTC Call Overlay Screen -->
       <div id="call-overlay">
-        <!-- Floating Header with Minimize ⤢ Button -->
+        <!-- Floating Header with Clean Minimize Button -->
         <div class="call-top-bar">
           <div class="call-top-left">
-            <button id="call-minimize-screen-btn" title="Minimize Call">⤢</button>
+            <!-- Pinalitan ng mas maayos na Minimize Icon (Down Arrow icon) -->
+            <button id="call-minimize-screen-btn" title="Minimize Call">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+            </button>
             <div class="caller-title" id="call-partner-title">User</div>
           </div>
         </div>
@@ -1515,6 +1527,22 @@
 
       // Automatically set the target user's dynamic name
       document.getElementById('call-partner-title').textContent = activeFriend;
+      
+      // Control Visibility for Video vs Voice Call
+      if (!isVideo) {
+        document.getElementById('remote-video').style.display = "none";
+        document.getElementById('localVideoContainer').style.display = "none";
+        document.getElementById('toggle-cam-btn').style.display = "none";
+        document.getElementById('toggle-filter-btn').style.display = "none";
+        document.getElementById('flip-cam-btn').style.display = "none";
+      } else {
+        document.getElementById('remote-video').style.display = "block";
+        document.getElementById('localVideoContainer').style.display = "block";
+        document.getElementById('toggle-cam-btn').style.display = "flex";
+        document.getElementById('toggle-filter-btn').style.display = "flex";
+        document.getElementById('flip-cam-btn').style.display = "flex";
+      }
+
       document.getElementById('call-overlay').style.display = "flex";
       playRingtone('out');
       callStartTime = Date.now();
@@ -1621,6 +1649,21 @@
       callStartTime = Date.now();
       isCallVideoActive = data.isVideo;
       currentFacingMode = 'user';
+
+      if (!data.isVideo) {
+        document.getElementById('remote-video').style.display = "none";
+        document.getElementById('localVideoContainer').style.display = "none";
+        document.getElementById('toggle-cam-btn').style.display = "none";
+        document.getElementById('toggle-filter-btn').style.display = "none";
+        document.getElementById('flip-cam-btn').style.display = "none";
+      } else {
+        document.getElementById('remote-video').style.display = "block";
+        document.getElementById('localVideoContainer').style.display = "block";
+        document.getElementById('toggle-cam-btn').style.display = "flex";
+        document.getElementById('toggle-filter-btn').style.display = "flex";
+        document.getElementById('flip-cam-btn').style.display = "flex";
+      }
+
       document.getElementById('call-overlay').style.display = "flex";
       
       try {
@@ -1722,10 +1765,12 @@
       }
     }
 
-    // MINIMIZE AND EXPAND CALL FEATURE (⤢)
+    // MINIMIZE AND EXPAND CALL FEATURE (Smoothly toggle display)
     document.getElementById('call-minimize-screen-btn').addEventListener('click', () => {
       document.getElementById('call-overlay').style.display = "none";
-      document.getElementById('mini-call-bar').style.display = "flex";
+      const miniBar = document.getElementById('mini-call-bar');
+      document.getElementById('mini-call-label').textContent = isCallVideoActive ? "📹 Video Call (Minimized)" : "📞 Voice Call (Minimized)";
+      miniBar.style.display = "flex";
       filterBar.style.display = "none";
     });
 
