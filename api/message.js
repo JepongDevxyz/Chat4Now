@@ -22,7 +22,7 @@ module.exports = async (req, res) => {
     return res.status(200).end();
   }
 
-  // GET: Kukunin ng Frontend ang env keys nang hindi nakahambal
+  // 1. GET: Kukunin ng Frontend ang env keys
   if (req.method === 'GET' && req.query.action === 'config') {
     return res.status(200).json({
       key: process.env.PUSHER_KEY,
@@ -30,18 +30,22 @@ module.exports = async (req, res) => {
     });
   }
 
-  // POST: Pusher Authentication Handler para sa Private Channels
+  // 2. POST: Pusher Authentication Handler para sa Private/Presence Channels
   if (req.method === 'POST' && req.query.action === 'auth') {
-    const { socket_id, channel_name, username } = req.body;
+    const socketId = req.body.socket_id;
+    const channel = req.body.channel_name;
+    const username = req.body.username || req.query.username;
+
     const presenceData = {
       user_id: username || "user_" + Math.random().toString(36).substr(2, 9),
       user_info: { name: username }
     };
+
     try {
-      const auth = pusher.authorizeChannel(socket_id, channel_name, presenceData);
-      return res.send(auth);
+      const authResponse = pusher.authorizeChannel(socketId, channel, presenceData);
+      return res.status(200).json(authResponse);
     } catch (error) {
-      return res.status(500).send(error.message);
+      return res.status(500).json({ error: error.message });
     }
   }
 
@@ -52,7 +56,7 @@ module.exports = async (req, res) => {
   const { 
     action, text, user, toUserId, fromUserId, 
     offer, answer, candidate, isVideo, logType, 
-    isGuest, status, lastSeen 
+    isGuest 
   } = req.body;
 
   try {
